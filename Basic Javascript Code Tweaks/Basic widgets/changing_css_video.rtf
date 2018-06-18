@@ -1,0 +1,180 @@
+{\rtf1\ansi\ansicpg1252\deff0\nouicompat\deflang16393{\fonttbl{\f0\fnil\fcharset0 Cambria Math;}{\f1\fnil\fcharset0 Calibri;}}
+{\*\generator Riched20 10.0.14393}{\*\mmathPr\mmathFont0\mwrapIndent1440 }\viewkind4\uc1 
+\pard\sa200\sl276\slmult1\f0\fs36\lang9 HTML:\f1\fs22\par
+<!DOCTYPE html>\par
+<html lang="en">\par
+<head>\par
+<meta charset=utf-8 />\par
+<title>JS Bin</title>\par
+  <script>\par
+    \par
+    function init() \{\par
+        var vid = document.getElementById('vid');\par
+        addListeners(vid);\par
+    \}\par
+    \par
+    function toggleNotes() \{\par
+    var notes = document.getElementsByClassName('note');\par
+    var isShowing =     parseInt(window.getComputedStyle(notes[0],null).getPropertyValue("opacity"));\par
+  \par
+    for (var i = 0; i < notes.length; i++) \{\par
+        notes[i].style.opacity = isShowing ? 0 : 1;      \par
+    \}\par
+    // toggle text to "Show Notes" or "Hide Notes"\par
+    document.getElementById('notes').className = isShowing ? 'off' : 'on';\par
+\}\par
+ \par
+function addListeners(vid) \par
+\{\par
+ \par
+    /* add all event listeners for HTML5 media element events */  \par
+    vid.addEventListener('loadstart', function(evt) \{ logEvent(evt,'#000099'); \}, false);  \par
+    vid.addEventListener('canplaythrough',function(evt) \{  logEvent(evt,'#66CC33'); \}, false);\par
+    vid.addEventListener('canplay', function(evt) \{ logEvent(evt,'#66CC33'); \}, false);\par
+    vid.addEventListener('loadeddata', function(evt) \{ logEvent(evt,'#00CCCC'); \}, false); \par
+    vid.addEventListener('loadedmetadata', function(evt) \{ logEvent(evt,'#00CCCC'); \}, false);\par
+          \par
+    vid.addEventListener('abort', function(evt) \{ logEvent(evt,'red'); \}, false);\par
+    vid.addEventListener('emptied', function(evt) \{ logEvent(evt,'red'); \}, false);\par
+    vid.addEventListener('error', function(evt) \{ logEvent(evt,'red'); \}, false);\par
+    vid.addEventListener('stalled', function(evt) \{ logEvent(evt,'red'); \}, false);\par
+    vid.addEventListener('suspend', function(evt) \{ logEvent(evt,'red'); \}, false);\par
+    vid.addEventListener('waiting', function(evt) \{ logEvent(evt,'red'); \}, false);\par
+ \par
+    vid.addEventListener('pause', function(evt) \{ logEvent(evt,'orange'); \}, false);\par
+    vid.addEventListener('play', function(evt) \{ logEvent(evt,'orange'); \}, false);\par
+    vid.addEventListener('volumechange', function(evt) \{ logEvent(evt,'orange'); \}, false);\par
+ \par
+    vid.addEventListener('playing', function(evt) \{ logEvent(evt,'purple'); \}, false);\par
+ \par
+    vid.addEventListener('seeked', function(evt) \{ logEvent(evt,'teal'); \}, false);    \par
+    vid.addEventListener('seeking', function(evt) \{ logEvent(evt,'teal'); \}, false);    \par
+ \par
+    vid.addEventListener('durationchange', function(evt) \{ logEvent(evt,'#cc0066'); \}, false);\par
+    vid.addEventListener('progress', function(evt) \{ logEvent(evt,'#cc0066'); \}, false);   \par
+    vid.addEventListener('ratechange', function(evt) \{ logEvent(evt,'#cc0066'); \}, false);   \par
+ \par
+    vid.addEventListener('timeupdate', function(evt) \{ logEvent(evt,'gray'); \}, false);\par
+ \par
+    vid.addEventListener('ended', function(evt) \{ logEvent(evt,'#000099'); \}, false); \par
+    \par
+    vid.addEventListener('webkitbeginfullscreen', function(evt) \{ logEvent(evt,'#FF6666'); \}, false); \par
+    vid.addEventListener('webkitendfullscreen', function(evt) \{ logEvent(evt,'#FF6666'); \}, false); \par
+\}\par
+ \par
+ \par
+function logEvent(evt, color) \par
+\{\par
+    var log = document.createElement("div");\par
+    log.innerHTML = evt.type;\par
+    log.style.color = color;\par
+ \par
+    var note = document.createElement("span");\par
+    note.setAttribute('class', 'note');\par
+    /* set the opacity of the note on the fly, based on whether notes are currently toggled on or off */\par
+    note.style.opacity = document.getElementById('notes').className == 'on' ? '1' : '0';\par
+ \par
+    /* add a note describing what each event does */\par
+    switch (evt.type) \{\par
+        case 'loadstart' :\par
+            note.innerHTML = "begin loading media data";\par
+            break;\par
+        case 'progress':\par
+            note.innerHTML = "fetching media...";\par
+            break;\par
+        case 'canplay':\par
+            note.innerHTML = "can play, but will eventually have to buffer";\par
+            break;\par
+        case 'canplaythrough':\par
+            note.innerHTML = "can play, won't have to buffer anymore";\par
+            break;\par
+        case 'loadeddata':\par
+            note.innerHTML = "can render media data at current playback position";\par
+            break;\par
+        case 'loadedmetadata':\par
+            note.innerHTML = "now we know duration, height, width, and more";\par
+            break;\par
+        case 'timeupdate':\par
+            log.innerHTML += " " + evt.target.currentTime.toFixed(3);\par
+            break;\par
+        case 'durationchange':\par
+            note.innerHTML = "new info about the duration";\par
+            break;\par
+        case 'volumechange':\par
+            note.innerHTML = "volume or muted property has changed";\par
+            break;\par
+        case 'play':\par
+            note.innerHTML = "just returned from the play function";\par
+            break;\par
+        case 'playing':\par
+            note.innerHTML = "playback has started";\par
+            break;\par
+        case 'pause':\par
+            note.innerHTML = "just returned from the pause function";\par
+            break;\par
+        case 'suspend':\par
+            note.innerHTML = "loading has stopped, but not all of the media has downloaded";\par
+            break;\par
+        case 'waiting':\par
+            note.innerHTML = "stopped playback because we're waiting for the next frame";\par
+            break;\par
+        case 'stalled':\par
+            note.innerHTML = "fetching media data, but none is arriving";\par
+            break;\par
+        case 'webkitbeginfullscreen':\par
+            note.innerHTML = "entering fullscreen mode";\par
+            break;\par
+        case 'webkitendfullscreen':\par
+            note.innerHTML = "exiting fullscreen mode";\par
+            break;\par
+        case 'error':  \par
+            var error = document.querySelector('video').error;\par
+            switch (error.code) \{\par
+              case error.MEDIA_ERR_ABORTED:\par
+                note.innerHTML = "fetching aborted at the user's request"; \par
+                break;\par
+              case error.MEDIA_ERR_NETWORK:\par
+                note.innerHTML = "a network error caused the browser to stop fetching the media"; \par
+                break;\par
+              case error.MEDIA_ERR_DECODE:\par
+                note.innerHTML = "an error occurred while decoding the media"; \par
+                break;\par
+              case error.MEDIA_ERR_SRC_NOT_SUPPORTED:\par
+                note.innerHTML = "the media indicated by the src attribute was not suitable"; \par
+                break;\par
+              default:\par
+                note.innerHTML = "an error occurred"; \par
+                break;\par
+            \}\par
+            break;\par
+    \}\par
+ \par
+    /* create the log message and append it to the events log */\par
+    log.appendChild(note);\par
+    var eventslog = document.getElementById('eventslog');\par
+    eventslog.insertBefore(log, eventslog.firstChild);\par
+\}\par
+  </script>\par
+</head>\par
+<body onload='init();'>\par
+  <h1>Events for the &lt;video&gt; element</h1>\par
+  Example showing the differents events. Code borrowed and adapted from: <a href="http://developer.apple.com/library/safari/samplecode/HTML5VideoEventFlow/Listings/events_js.html">http://developer.apple.com/library/safari/samplecode/HTML5VideoEventFlow/Listings/events_js.html</a><p>\par
+  <p><b>If running in jsbin.com, you need to run it "externally", use the small arrow on top right.</b> <p>\par
+  <!-- <video> tag, with the @controls attribute\par
+     giving it the play/pause/seeker controls. Try removing the controls attribute, \par
+     adding autoplay or loop -->\par
+<video id="vid" controls> \par
+\tab <!-- I have three versions of the video encoded with\par
+\tab      different codecs.  The browser will automatically\par
+\tab      choose the first one it knows it can play. --> \par
+\tab <source src=http://html5doctor.com/demos/video-canvas-magic/video.webm type=video/webm> \par
+\tab <source src=http://html5doctor.com/demos/video-canvas-magic/video.ogg type=video/ogg> \par
+\tab <source src=http://html5doctor.com/demos/video-canvas-magic/video.mp4 type=video/mp4> \par
+</video> <p>\par
+  <div id="notes"></div><p>\par
+  <div id="eventslog"></div>\par
+</body>\par
+</html>\f0\fs28 JS2:\par
+\fs22\par
+}
+ 

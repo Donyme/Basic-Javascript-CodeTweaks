@@ -1,0 +1,325 @@
+{\rtf1\ansi\ansicpg1252\deff0\nouicompat\deflang16393{\fonttbl{\f0\fnil\fcharset0 Constantia;}{\f1\fnil\fcharset0 Calibri;}}
+{\*\generator Riched20 10.0.14393}\viewkind4\uc1 
+\pard\sa200\sl276\slmult1\b\f0\fs28\lang9 HTML:\b0\f1\fs22\par
+<html lang="en">\par
+<head>\par
+  <meta charset="utf-8">\par
+  <title>Draw a monster in a canvas</title>\par
+</head>\par
+<body>\par
+  <div id="controls">\par
+    <label for="nbBalls">Number of balls: </label>\par
+    <input type="number" min=1 max=30 \par
+           value=10 id="nbBalls"\par
+           oninput="changeNbBalls(this.value);">\par
+    <p></p>\par
+   <label for="colorChooser">Player color: </label>\par
+    <input type="color" value='#FF0000'\par
+           oninput="changePlayerColor(this.value);" id="colorChooser">\par
+    <p></p>\par
+      <label for="selectColorOfBallToEat">Color of ball to eat: </label>\par
+      <select onchange="changeColorToEat(this.value);" id="selectColorOfBallToEat">\par
+        <option value='red'>red</option>\par
+        <option value='blue'>blue</option>\par
+        <option value='green'>green</option>\par
+    </select>\par
+    <p></p>\par
+\par
+   <label for="ballSpeed">Change ball speed: </label>\par
+    - <input type="range" value='1'\par
+             min=0.1 max=3 step=0.1\par
+           oninput="changeBallSpeed(this.value);"\par
+             id="ballSpeed"> + \par
+    <p></p>\par
+    \par
+  </div>\par
+  <canvas id="myCanvas"  width="400" height="400"></canvas>\par
+</body>\par
+</html>\par
+\f0\fs28 JS:\par
+\f1\fs22 var canvas, ctx, w, h; \par
+var mousePos;\par
+\par
+// an empty array!\par
+var balls = []; \par
+var initialNumberOfBalls;\par
+var globalSpeedMutiplier = 1;\par
+var colorToEat = 'red';\par
+var wrongBallsEaten = goodBallsEaten = 0;\par
+var numberOfGoodBalls;\par
+\par
+var player = \{\par
+  x:10,\par
+  y:10,\par
+  width:20,\par
+  height:20,\par
+  color:'red'\par
+\}\par
+\par
+window.onload = function init() \{\par
+    // called AFTER the page has been loaded\par
+    canvas = document.querySelector("#myCanvas");\par
+  \par
+    // often useful\par
+    w = canvas.width; \par
+    h = canvas.height;  \par
+  \par
+    // important, we will draw with this object\par
+    ctx = canvas.getContext('2d');\par
+  \par
+    // start game with 10 balls, balls to eat = red balls\par
+    startGame(10);\par
+  \par
+    // add a mousemove event listener to the canvas\par
+    canvas.addEventListener('mousemove', mouseMoved);\par
+\par
+    // ready to go !\par
+    mainLoop();\par
+\};\par
+\par
+function startGame(nb) \{\par
+  do \{\par
+    balls = createBalls(nb);\par
+    initialNumberOfBalls = nb;\par
+    numberOfGoodBalls = countNumberOfGoodBalls(balls, colorToEat);\par
+  \} while(numberOfGoodBalls === 0);\par
+  \par
+  wrongBallsEaten = goodBallsEaten = 0;\par
+\}\par
+\par
+function countNumberOfGoodBalls(balls, colorToEat) \{\par
+  var nb = 0;\par
+  \par
+  balls.forEach(function(b) \{\par
+    if(b.color === colorToEat)\par
+      nb++;\par
+  \});\par
+  \par
+  return nb;\par
+\}\par
+\par
+function changeNbBalls(nb) \{\par
+  startGame(nb);\par
+\}\par
+\par
+function changeColorToEat(color) \{\par
+  colorToEat = color;\par
+\}\par
+\par
+function changePlayerColor(color) \{\par
+  player.color = color;\par
+\}\par
+\par
+function changeBallSpeed(coef) \{\par
+    globalSpeedMutiplier = coef;\par
+\}\par
+\par
+function mouseMoved(evt) \{\par
+    mousePos = getMousePos(canvas, evt);\par
+\}\par
+\par
+function getMousePos(canvas, evt) \{\par
+    // necessary work in the canvas coordinate system\par
+    var rect = canvas.getBoundingClientRect();\par
+    return \{\par
+        x: evt.clientX - rect.left,\par
+        y: evt.clientY - rect.top\par
+    \};\par
+\}\par
+\par
+function movePlayerWithMouse() \{\par
+  if(mousePos !== undefined) \{\par
+    player.x = mousePos.x;\par
+    player.y = mousePos.y;\par
+  \}\par
+\}\par
+\par
+function mainLoop() \{\par
+  // 1 - clear the canvas\par
+  ctx.clearRect(0, 0, w, h);\par
+  \par
+  // draw the ball and the player\par
+  drawFilledRectangle(player);\par
+  drawAllBalls(balls);\par
+  drawBallNumbers(balls);\par
+\par
+  // animate the ball that is bouncing all over the walls\par
+  moveAllBalls(balls);\par
+  \par
+  movePlayerWithMouse();\par
+  \par
+  // ask for a new animation frame\par
+  requestAnimationFrame(mainLoop);\par
+\}\par
+\par
+// Collisions between rectangle and circle\par
+function circRectsOverlap(x0, y0, w0, h0, cx, cy, r) \{\par
+   var testX=cx;\par
+   var testY=cy;\par
+   if (testX < x0) testX=x0;\par
+   if (testX > (x0+w0)) testX=(x0+w0);\par
+   if (testY < y0) testY=y0;\par
+   if (testY > (y0+h0)) testY=(y0+h0);\par
+   return (((cx-testX)*(cx-testX)+(cy-testY)*(cy-testY))< r*r);\par
+\}\par
+\par
+function createBalls(n) \{\par
+  // empty array\par
+  var ballArray = [];\par
+  \par
+  // create n balls\par
+  for(var i=0; i < n; i++) \{\par
+     var b = \{\par
+        x:w/2,\par
+        y:h/2,\par
+        radius: 5 + 30 * Math.random(), // between 5 and 35\par
+        speedX: -5 + 10 * Math.random(), // between -5 and + 5\par
+        speedY: -5 + 10 * Math.random(), // between -5 and + 5\par
+        color:getARandomColor(),\par
+      \}\par
+     // add ball b to the array\par
+     ballArray.push(b);\par
+    \}\par
+  // returns the array full of randomly created balls\par
+  return ballArray;\par
+\}\par
+\par
+function getARandomColor() \{\par
+  var colors = ['red', 'blue', 'cyan', 'purple', 'pink', 'green', 'yellow'];\par
+  // a value between 0 and color.length-1\par
+  // Math.round = rounded value\par
+  // Math.random() a value between 0 and 1\par
+  var colorIndex = Math.round((colors.length-1)*Math.random()); \par
+  var c = colors[colorIndex];\par
+  \par
+  // return the random color\par
+  return c;\par
+\}\par
+\par
+function drawBallNumbers(balls) \{\par
+  ctx.save();\par
+  ctx.font="20px Arial";\par
+  \par
+  if(balls.length === 0) \{\par
+    ctx.fillText("Game Over!", 20, 30);\par
+  \} else if(goodBallsEaten === numberOfGoodBalls) \{\par
+    ctx.fillText("You Win! Final score : " + (initialNumberOfBalls - wrongBallsEaten), \par
+                 20, 30);\par
+  \} else \{\par
+    ctx.fillText("Balls still alive: " + balls.length, 210, 30);\par
+    ctx.fillText("Good Balls eaten: " + goodBallsEaten, 210, 50);\par
+     ctx.fillText("Wrong Balls eaten: " + wrongBallsEaten, 210, 70);\par
+  \}\par
+  ctx.restore();\par
+\}\par
+\par
+function drawAllBalls(ballArray) \{\par
+    ballArray.forEach(function(b) \{\par
+      drawFilledCircle(b);\par
+    \});\par
+\}\par
+\par
+function moveAllBalls(ballArray) \{\par
+  // iterate on all balls in array\par
+  balls.forEach(function(b, index) \{\par
+      // b is the current ball in the array\par
+      b.x += (b.speedX * globalSpeedMutiplier);\par
+      b.y += (b.speedY * globalSpeedMutiplier);\par
+  \par
+      testCollisionBallWithWalls(b); \par
+    \par
+      testCollisionWithPlayer(b, index);\par
+  \});\par
+\}\par
+\par
+function testCollisionWithPlayer(b, index) \{\par
+  if(circRectsOverlap(player.x, player.y,\par
+                     player.width, player.height,\par
+                     b.x, b.y, b.radius)) \{\par
+    // we remove the element located at index\par
+    // from the balls array\par
+    // splice: first parameter = starting index\par
+    //         second parameter = number of elements to remove\par
+    if(b.color === colorToEat) \{\par
+      // Yes, we remove it and increment the score\par
+      goodBallsEaten += 1;\par
+    \} else \{\par
+      wrongBallsEaten += 1;\par
+    \}\par
+    \par
+    balls.splice(index, 1);\par
+\par
+  \}\par
+\}\par
+\par
+function testCollisionBallWithWalls(b) \{\par
+    // COLLISION WITH VERTICAL WALLS ?\par
+    if((b.x + b.radius) > w) \{\par
+    // the ball hit the right wall\par
+    // change horizontal direction\par
+    b.speedX = -b.speedX;\par
+    \par
+    // put the ball at the collision point\par
+    b.x = w - b.radius;\par
+  \} else if((b.x -b.radius) < 0) \{\par
+    // the ball hit the left wall\par
+    // change horizontal direction\par
+    b.speedX = -b.speedX;\par
+    \par
+    // put the ball at the collision point\par
+    b.x = b.radius;\par
+  \}\par
+  \par
+  // COLLISIONS WTH HORIZONTAL WALLS ?\par
+  // Not in the else as the ball can touch both\par
+  // vertical and horizontal walls in corners\par
+  if((b.y + b.radius) > h) \{\par
+    // the ball hit the right wall\par
+    // change horizontal direction\par
+    b.speedY = -b.speedY;\par
+    \par
+    // put the ball at the collision point\par
+    b.y = h - b.radius;\par
+  \} else if((b.y -b.radius) < 0) \{\par
+    // the ball hit the left wall\par
+    // change horizontal direction\par
+    b.speedY = -b.speedY;\par
+    \par
+    // put the ball at the collision point\par
+    b.Y = b.radius;\par
+  \}  \par
+\}\par
+\par
+function drawFilledRectangle(r) \{\par
+    // GOOD practice: save the context, use 2D trasnformations\par
+    ctx.save();\par
+  \par
+    // translate the coordinate system, draw relative to it\par
+    ctx.translate(r.x, r.y);\par
+  \par
+    ctx.fillStyle = r.color;\par
+    // (0, 0) is the top left corner of the monster.\par
+    ctx.fillRect(0, 0, r.width, r.height);\par
+  \par
+    // GOOD practice: restore the context\par
+    ctx.restore();\par
+\}\par
+\par
+function drawFilledCircle(c) \{\par
+    // GOOD practice: save the context, use 2D trasnformations\par
+    ctx.save();\par
+  \par
+    // translate the coordinate system, draw relative to it\par
+    ctx.translate(c.x, c.y);\par
+  \par
+    ctx.fillStyle = c.color;\par
+    // (0, 0) is the top left corner of the monster.\par
+    ctx.beginPath();\par
+    ctx.arc(0, 0, c.radius, 0, 2*Math.PI);\par
+    ctx.fill();\par
+ \par
+    // GOOD practice: restore the context\par
+    ctx.restore();\par
+\}\par
+}
+ 

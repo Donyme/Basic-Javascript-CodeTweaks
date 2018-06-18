@@ -1,0 +1,1541 @@
+{\rtf1\ansi\ansicpg1252\deff0\nouicompat\deflang16393{\fonttbl{\f0\fnil\fcharset0 Cambria Math;}{\f1\fnil\fcharset0 Calibri;}{\f2\fnil\fcharset204 Cambria Math;}}
+{\colortbl ;\red0\green0\blue255;}
+{\*\generator Riched20 10.0.14393}{\*\mmathPr\mmathFont0\mwrapIndent1440 }\viewkind4\uc1 
+\pard\sa200\sl276\slmult1\f0\fs36\lang9\par
+HTML:\par
+\f1\fs24 <!DOCTYPE html>\par
+<html lang="en">\par
+<div class="center-block">\par
+  <canvas id="shooter" width="800" height="500"></canvas>\par
+  </div>\par
+</html>\f0\fs28\par
+\fs32 CSS:\f1\fs24\par
+ body\{\par
+      background-color: rgb(25,0,77);\par
+    \}\par
+    .center-block\{\par
+      margin:0 auto;\par
+      max-width: 800px;      \par
+    \}\par
+    canvas \{\par
+      width: 100%;\par
+      border:2px solid rgb(0,168,203);\par
+    \}\par
+\f0\fs32 JS2:\par
+\fs24   //-----------------------------------------------------------------------------\par
+  // vars for counting frames/s, used by the measureFPS function\par
+    var frameCount = 0;\par
+    var lastTime;\par
+    var fpsContainer;\par
+    var fps;\par
+\par
+    var initFPSCounter = function() \{\par
+        // adds a div for displaying the fps value\par
+        fpsContainer = document.createElement('div');\par
+        document.body.appendChild(fpsContainer);\par
+    \}\par
+    \par
+    var measureFPS = function (newTime) \{\par
+\par
+        // test for the very first invocation\par
+        if (lastTime === undefined) \{\par
+            lastTime = newTime;\par
+            return;\par
+        \}\par
+\par
+        //calculate the difference between last & current frame\par
+        var diffTime = newTime - lastTime;\par
+\par
+        if (diffTime >= 1000) \{\par
+            fps = frameCount;\par
+            frameCount = 0;\par
+            lastTime = newTime;\par
+        \}\par
+\par
+        //and display it in an element we appended to the \par
+        // document in the start() function\par
+     //   fpsContainer.innerHTML = 'FPS: ' + fps;\par
+        frameCount++;\par
+    \};\par
+    //------------------------------------------------------------------------------------\par
+    //timeBaseAnimation\par
+    var delta, oldTime = 0;\par
+\par
+    function timer(currentTime) \{\par
+        var delta = currentTime - oldTime;\par
+        oldTime = currentTime;\par
+        return delta;\par
+    \}\par
+\par
+    var calcDistanceToMove = function (delta, speed) \{\par
+        //console.log("#delta = " + delta + " speed = " + speed);\par
+        return (speed * delta) / 1000;\par
+     \};\par
+    //-------------------------------------------------------------------------------------\par
+    //listeners\par
+    function addListeners(inputStates, canvas) \{\par
+        //add the listener to the main, window object, and update the states\par
+        window.addEventListener('keydown', function (event) \{\par
+            if (event.keyCode === 37) \{\par
+                inputStates.left = true;\par
+            \} else if (event.keyCode === 38) \{\par
+                inputStates.up = true;\par
+            \} else if (event.keyCode === 39) \{\par
+                inputStates.right = true;\par
+            \} else if (event.keyCode === 40) \{\par
+                inputStates.down = true;\par
+            \} else if (event.keyCode === 32) \{\par
+                inputStates.space = true;\par
+            \} else if (event.keyCode === 13) \{\par
+                inputStates.enter = true;\par
+            \}\par
+        \}, false);\par
+\par
+        //if the key will be released, change the states object \par
+        window.addEventListener('keyup', function (event) \{\par
+            if (event.keyCode === 37) \{\par
+                inputStates.left = false;\par
+            \} else if (event.keyCode === 38) \{\par
+                inputStates.up = false;\par
+            \} else if (event.keyCode === 39) \{\par
+                inputStates.right = false;\par
+            \} else if (event.keyCode === 40) \{\par
+                inputStates.down = false;\par
+            \} else if (event.keyCode === 32) \{\par
+                inputStates.space = false;\par
+            \}else if (event.keyCode === 13) \{\par
+                inputStates.enter = false;\par
+            \}\par
+        \}, false);\par
+\par
+        // Mouse event listeners\par
+        canvas.addEventListener('mousemove', function (evt) \{\par
+            inputStates.mousePos = getMousePos(evt, canvas);\par
+        \}, false);\par
+\par
+        canvas.addEventListener('mousedown', function (evt) \{\par
+            inputStates.mousedown = true;\par
+            inputStates.mouseButton = evt.button;\par
+        \}, false);\par
+\par
+        canvas.addEventListener('mouseup', function (evt) \{\par
+            inputStates.mousedown = false;\par
+        \}, false);\par
+\}\par
+\par
+function getMousePos(evt, canvas) \{\par
+    // necessary to take into account CSS boudaries\par
+    var rect = canvas.getBoundingClientRect();\par
+    return \{\par
+        x: evt.clientX - rect.left,\par
+        y: evt.clientY - rect.top\par
+    \};\par
+\}\par
+//------------------------------------------------------------------------------\par
+// We can add the other collision functions seen in the\par
+   // course here...\par
+   \par
+   // Collisions between rectangle and circle\par
+    function circRectsOverlap(x0, y0, w0, h0, cx, cy, r) \{\par
+        var testX = cx;\par
+        var testY = cy;\par
+\par
+        if (testX < x0)\par
+            testX = x0;\par
+        if (testX > (x0 + w0))\par
+            testX = (x0 + w0);\par
+        if (testY < y0)\par
+            testY = y0;\par
+        if (testY > (y0 + h0))\par
+            testY = (y0 + h0);\par
+\par
+        return (((cx - testX) * (cx - testX) + (cy - testY) * (cy - testY)) < r * r);\par
+    \}\par
+// Collisions between aligned rectangles\par
+function rectsOverlap(x1, y1, w1, h1, x2, y2, w2, h2) \{\par
+ \par
+  if ((x1 > (x2 + w2)) || ((x1 + w1) < x2))\par
+     return false; // No horizontal axis projection overlap\par
+  if ((y1 > (y2 + h2)) || ((y1 + h1) < y2))\par
+     return false; // No vertical axis projection overlap\par
+   // console.log("x1="+x1+"  y1="+y1+"  w1="+w1+"  h1="+h1);\par
+   // console.log("x2="+x2+"  y2="+y2+"  w2="+w2+"  h2="+h2);\par
+  return true; // If previous tests failed, then both axis projections\par
+               // overlap and the rectangles intersect\par
+\}\par
+\par
+    function testCollisionWithWalls(ball, w, h) \{\par
+        // left\par
+        if (ball.x < ball.radius) \{\par
+            ball.x = ball.radius;\par
+            ball.angle = -ball.angle + Math.PI;\par
+        \}\par
+        // right\par
+        if (ball.x > w - (ball.radius)) \{\par
+            ball.x = w - (ball.radius);\par
+            ball.angle = -ball.angle + Math.PI;\par
+        \}\par
+        // up\par
+        if (ball.y < ball.radius) \{\par
+            ball.y = ball.radius;\par
+            ball.angle = -ball.angle;\par
+        \}\par
+        // down\par
+        if (ball.y > h - (ball.radius)) \{\par
+            ball.y = h - (ball.radius);\par
+            ball.angle = -ball.angle;\par
+        \}\par
+    \}\par
+    //-----------------------------------------------------------------------------\par
+    // Sprite utility functions\par
+    // ------------------------\par
+function SpriteImage(img, x, y, width, height,scale) \{\par
+   this.img = img;  // the whole image that contains all sprites\par
+   this.x = x;      // x, y position of the sprite image in the whole image\par
+   this.y = y;\par
+   this.width = width;   // width and height of the sprite image\par
+   this.height = height;\par
+   // xPos and yPos = position where the sprite should be drawn,\par
+   // scale = rescaling factor between 0 and 1\par
+   this.draw = function(ctx, xPos, yPos, scale) \{\par
+      ctx.drawImage(this.img,\par
+                    this.x, this.y, // x, y, width and height of img to extract\par
+                    this.width, this.height,\par
+\par
+                    xPos, yPos,     // x, y, width and height of img to draw\par
+                    this.width*scale, this.height*scale);\par
+   \};\par
+\}\par
+\par
+function Sprite() \{\par
+  this.spriteArray = [];\par
+  this.currentFrame = 0;\par
+  this.delayBetweenFrames = 10;\par
+                                            //\f2\lang1049\'ea\'ee\'eb-\'e2\'ee \'ef\'ee\'e7,     \'ef\'ee\'e7\'e0 \'e4\'eb\'ff \'e2\'fb\'e4\'e5\'eb\'e5\'ed\'e8\'ff, \'ea\'ee\'eb-\'e2\'ee \'ea\'e0\'e4\'f0\'ee\'e2 \'ed\'e0 \'ef\'ee\'e7\'f3\par
+  this.extractSprites = function(spritesheet, /*nbPostures,*/ postureToExtract, nbFramesPerPosture, \par
+                      //\'ea\'ee\'eb-\'e2\'ee \'ea\'ee\'eb\'ee\'ed\'ee\'ea \'e2 \'eb\'e8\'f1\'f2\'e5,\'ea\'ee\'eb-\'e2\'ee \'f1\'f2\'f0\'ee\'ea \'e2 \'eb\'e8\'f1\'f2\'e5\par
+                          nb_column_sheet,nb_string_sheet) \{\par
+      // number of sprites per row in the spritesheet\par
+\par
+       spriteHeight=Math.floor(spritesheet.height/ nb_string_sheet); //\'e2\'fb\'f1\'ee\'f2\'e0 \'f4\'f0\'e5\'e9\'ec\'e0\par
+       spriteWidth =Math.floor(spritesheet.width / nb_column_sheet);\par
+      var nbSpritesPerRow = Math.floor(spritesheet.width / spriteWidth); //\'ea\'ee\'eb-\'e2\'ee \'f4\'f0\'e5\'e9\'ec\'ee\'e2 \'e2 \'f1\'f2\'f0\'ee\'ea\'e5\par
+    /* \par
+      console.log("spritesheet.width="+spritesheet.width);\par
+      console.log("spritesheet.height="+spritesheet.height);\par
+\par
+      console.log("spriteWidth="+spriteWidth);\par
+\par
+      console.log("spriteHeight="+spriteHeight);\par
+\par
+      console.log("nbSpritesPerRow="+nbSpritesPerRow);\par
+      */\par
+      // Extract each sprite\par
+    var startIndex = (postureToExtract-1); // * nbFramesPerPosture;\par
+ \par
+    var endIndex = startIndex + nbFramesPerPosture;\par
+      for(var index = startIndex; index < endIndex; index++) \{\par
+          // Computation of the x and y position that corresponds to the sprite\par
+          // index\par
+          // x is the rest of index/nbSpritesPerRow * width of a sprite\par
+          var x = (index % nbSpritesPerRow) * spriteWidth;\par
+          // y is the divisor of index by nbSpritesPerRow * height of a sprite\par
+          var y = Math.floor(index / nbSpritesPerRow) * spriteHeight;\par
+     //  console.log("x="+x);\par
+     //  console.log("y="+y);\par
+          // build a spriteImage object\par
+          var s = new SpriteImage(spritesheet, x, y, spriteWidth, spriteHeight);\par
+    \par
+          this.spriteArray.push(s);\par
+      \}\par
+  \};\par
+  \par
+  this.then = performance.now();\par
+  this.totalTimeSinceLastRedraw = 0;\par
+  \par
+  this.drawStopped = function(ctx, x, y,scale) \{\par
+    var currentSpriteImage = this.spriteArray[this.currentFrame];\par
+     currentSpriteImage.draw(ctx, x, y, scale);\par
+  \};\par
+  \par
+  this.draw = function(ctx, x, y,scale) \{\par
+    // Use time based animation to draw only a few images per second\par
+    var now = performance.now();\par
+    var delta = now - this.then;\par
+    \par
+    // draw currentSpriteImage\par
+    var currentSpriteImage = this.spriteArray[this.currentFrame];\par
+    // x, y, scale. 1 = size unchanged\par
+    currentSpriteImage.draw(ctx, x, y, scale);\par
+ /*   console.log("x="+x);\par
+    console.log("y="+y);*/\par
+    // if the delay between images is elapsed, go to the next one\par
+    if (this.totalTimeSinceLastRedraw > this.delayBetweenFrames) \{\par
+       // Go to the next sprite image\par
+      this.currentFrame++; \par
+      this.currentFrame %=  this.spriteArray.length;\par
+      \par
+      // reset the total time since last image has been drawn\par
+      this.totalTimeSinceLastRedraw = 0;\par
+    \} else \{\par
+      // sum the total time since last redraw\par
+     this. totalTimeSinceLastRedraw += delta;\par
+    \}\par
+    \par
+    this.then = now;\par
+  \};\par
+  \par
+  this.setNbImagesPerSecond = function(nb) \{\par
+    // elay in ms between images\par
+    this.delayBetweenFrames = 1000 / nb;\par
+  \};\par
+\}\par
+//--------------------------------------------------------------\par
+// game objects\par
+\par
+\par
+        function Rocket(x,y,width,height,img,img2,speed)\{\par
+       this.x=x;\par
+       this.y=y;\par
+       this.width=width;\par
+       this.height=height;\par
+       this.picture = img;\par
+       this.picture2 = img2;\par
+       this.speed = speed;\par
+       this.crash = false;\par
+       this.maxHitpoint = 3;\par
+       this.hitpoint = 3;\par
+       this.hitRocket = false;\par
+       this.timeAfterHit = 500;\par
+\par
+        this.decreaseHit = function()\{\par
+        this.hitpoint --;\par
+        return this.hitpoint;\par
+      \};\par
+\par
+       this.draw = function(ctx,w,h)\{\par
+   \par
+    if (this.x < -20) \{ this.x = -20;\}\par
+    if (this.x > w - this.width +20) \{this.x = w- this.width+20;\}\par
+    \par
+    if (this.y > h - this.height) \{this.y =h- this.height;\}\par
+    if (this.y < 0) \{this.y = 0;\}\par
+\par
+                if(this.hitRocket === true)  \{this.picture2.draw(ctx,this.x,this.y,1);\}\par
+                                     else    \{this.picture.draw(ctx, this.x, this.y,1);\}\par
+       // this.picture.draw(ctx, this.x, this.y,1);\par
+    \};\par
+\}\par
+\par
+  function drawFire(fires,ctx) \{\par
+    if (fires.length) \{\par
+      for (var i = 0; i < fires.length; i++) \{\par
+        ctx.save();\par
+       // ctx.translate(0, -32);\par
+        ctx.lineWidth = 3;\par
+        ctx.lineCap = "round";\par
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.7)";\par
+        ctx.shadowBlur = 10;\par
+        ctx.shadowColor = "rgba(255, 255, 255, 0.6)";\par
+        ctx.beginPath();\par
+        ctx.moveTo(fires[i][0], fires[i][1]);\par
+        ctx.lineTo(fires[i][0], fires[i][1] - 10);\par
+        ctx.stroke();\par
+        ctx.restore();\par
+      \}\par
+    \}\par
+  \}\par
+  \par
+  function moveFire(fires,hit,yTarget) \{\par
+  //  console.log("kill="+kill+" yTarget="+yTarget);\par
+  //for\par
+    if(hit!==true) \par
+    for (var i = 0; i < fires.length; i++) \{\par
+          if (fires[i][1] >= 32) \{  //\'e5\'f1\'eb\'e8 \'ea\'ee\'ee\'f0-\'f2\'e0 "y" \'ee\'e3\'ed\'ff >=32,\'f2\'ee \'e4\'e2\'e8\'e3\'e0\'f2\'fc \'ee\'e3\'ee\'ed\'fc \'ef\'ee 5 \'ef\'e8\'ea\'f1\'e5\'eb\'e5\'e9 \'e2\'e2\'e5\'f0\'f5 \par
+          fires[i][1] -= 5;\par
+          \} else \par
+          fires.splice(i, 1); //\'f1 i \'f3\'e4\'e0\'eb\'e8\'f2\'fc 1 \'fd\'eb-\'f2           \par
+    \}\par
+    else \{ fires.splice(i, 1);\}       \par
+ \}// moveFire(fires)\par
+\par
+   function Bomb(x,y,r,speed,dx,dy)\{\par
+    this.x=x+40;\par
+    this.y=y+80;\par
+    this.r=r;\par
+    this.speed=speed;\par
+    this.dx=dx;\par
+    this.dy=dy;\par
+    this.remove = false;\par
+\par
+    this.draw = function(ctx)\{\par
+   // for (var i = 0; i < 5; i++) \{   \par
+    ctx.save();\par
+    ctx.beginPath(); \par
+    ctx.strokeStyle="rgb(255,145,110)";\par
+    ctx.fillStyle="rgb(243,91,61)";\par
+    ctx.arc(this.x,this.y,this.r,0,2*Math.PI);\par
+    ctx.stroke();\par
+    ctx.fill();\par
+    ctx.restore();\par
+   //  \}//for\par
+    \}//draw bomb\par
+\par
+    this.move = function (h) \{\par
+\par
+    this.y += this.dy*calcDistanceToMove(delta, this.speed);\par
+    this.x += this.dx*calcDistanceToMove(delta, this.speed/10);\par
+    if(this.y > h)\{\par
+      return this.remove = true;\par
+    \}\par
+            \};//move\par
+   \}//bomb\par
+\par
+   function Bullet(index,x,y,r,speed,dx,dy,time)\{\par
+    this.index = index;\par
+    this.x=x;\par
+    this.y=y;\par
+    this.r=r;\par
+    this.speed=speed;\par
+    this.dx=dx;\par
+    this.dy=dy;\par
+    this.time = time;\par
+    this.remove = false;\par
+\par
+    this.draw = function(ctx)\{  \par
+    ctx.save();\par
+    ctx.beginPath(); \par
+    ctx.strokeStyle="rgb(245,142,255)";\par
+    ctx.fillStyle="rgb(155,0,166)";\par
+    ctx.arc(this.x,this.y,this.r,0,2*Math.PI);\par
+    ctx.stroke();\par
+    ctx.fill();\par
+    ctx.restore();\par
+    \}//draw bomb\par
+\par
+    this.move = function (h,delta) \{\par
+\par
+    this.y += calcDistanceToMove(delta, this.speed);\par
+    this.x += this.dx*calcDistanceToMove(delta, this.speed/10);\par
+    if(this.y > h)\{\par
+      return this.remove = true;\par
+    \}\par
+            \};//move\par
+   \}//bomb\par
+\par
+\par
+   function Stranger(x,y,rectW,rectH,img,img2,speed)\{\par
+    this.x=x;\par
+    this.y=y;\par
+    this.speed=speed;\par
+    this.width=rectW;\par
+    this.height=rectH;\par
+    this.picture = img; //new SpriteImage(img,0,80,74,80);//img;\par
+    this.picture2= img2;\par
+    this.speed = speed;\par
+    this.crash = false;\par
+    this.hitpoint = 3;\par
+    this.hitStranger = false; \par
+    this.timeAfterHit = 100;\par
+\par
+    this.draw = function(ctx)\{\par
+                if(this.hitStranger === true)\{this.picture2.draw(ctx,this.x,this.y,1);\}\par
+                                     else    \{this.picture.draw(ctx, this.x, this.y,1);\}\par
+              \};\par
+\par
+    this.move = function (rocketX,rocketW) \{\par
+        var centerRocket=rocketX+ rocketW/2;\par
+        if(centerRocket+5 < this.x+rectW/2)\{\par
+            this.x -= calcDistanceToMove(delta, this.speed);\par
+            \} else if(centerRocket-5 > this.x+rectW/2)\{\par
+               this.x += calcDistanceToMove(delta, this.speed);\par
+            \}\par
+\par
+      \};//move\par
+      this.decreaseHit = function()\{\par
+        this.hitpoint --;\par
+        return this.hitpoint;\par
+      \};\par
+   \} \par
+  function CrashStranger(begined,x,y,img,time)\{\par
+    this.begined = begined;\par
+    this.x=x;\par
+    this.y=y;\par
+    this.picture = img; //new SpriteImage(img,0,80,74,80);//img;\par
+    this.time = time;\par
+     \par
+    this.draw = function(ctx)\{\par
+                this.picture.draw(ctx, this.x, this.y,1);\par
+              \}\par
+   \}\par
+\par
+   function CrashBlock(begined,x,y,img,time)\{\par
+    this.begined = begined;\par
+    this.x=x;\par
+    this.y=y;\par
+    this.picture = img; //new SpriteImage(img,0,80,74,80);//img;\par
+    this.time = time;\par
+     \par
+    this.draw = function(ctx)\{\par
+                this.picture.draw(ctx, this.x, this.y,1);\par
+              \}\par
+   \}\par
+\par
+    function Block(x,y,speed,rectW,rectH,opt,worked,sheet,gun)\{\par
+\par
+    this.blockX=x;\par
+    this.blockY=y;\par
+    this.rectW=rectW;\par
+    this.rectH=rectH;\par
+    this.speed=speed;\par
+    this.optName = opt;\par
+    this.opt=\{\};\par
+    this.worked=worked;\par
+    this.crashColor = false;\par
+    this.gun = gun;\par
+    \par
+\par
+\par
+    this.setHit = function()\{\par
+    if(this.optName == "optNormal")\{\par
+       this.hitpoint = 1;\par
+    \} else if(this.optName == "optYellow")\{\par
+      this.hitpoint = 2;\par
+    \} else if (this.optName == "optRed") \{\par
+      this.hitpoint = 2;\par
+    \} \par
+\par
+    return this.hitpoint;\par
+  \}\par
+  this.countHit = function()\{   \par
+      this.hitpoint --;    \par
+    return this.hitpoint;\par
+  \}\par
+\par
+ \par
+    this.draw = function (ctx)\{\par
+     if (this.optName === "optNormal") \{\par
+      this.opt = \{\par
+    "colorFill":"rgb(50, 120, 225)",\par
+    "colorShadow":"rgb(70, 60, 225)",\par
+    "colorStroke":"rgb(120, 190, 225)",\par
+    "colorStrokeShadow":"rgb(152, 123, 225)",\par
+    "hitpoint":1\par
+      \}\par
+    \} else if(this.optName === "optYellow")\{\par
+       this.opt = \{    \par
+    "colorFill":"rgb(30, 233, 159)",\par
+    "colorShadow":"rgb(5, 146, 90)",\par
+    "colorStroke":"rgb(100, 250, 222)",\par
+    "colorStrokeShadow":"rgb(9, 190, 160)",\par
+    "hitpoint":2\par
+      \}\par
+    \}  else if(this.optName === "optRed")\{\par
+      this.opt = \{\par
+       "colorFill":"rgb(239, 105, 158)",\par
+    "colorShadow":"rgb(210, 25, 85)",\par
+    "colorStroke":"rgb(250, 135, 200)",\par
+    "colorStrokeShadow":"rgb(250, 84, 120)",\par
+    "hitpoint":2\par
+      \}\par
+    \}  \par
+    ctx.lineWidth = 5;\par
+    ctx.lineJoin = "round";\par
+    ctx.strokeStyle = this.opt.colorStrokeShadow;\par
+    ctx.fillStyle = this.opt.colorShadow;\par
+\par
+    ctx.beginPath();\par
+    \par
+    ctx.moveTo(this.blockX,this.blockY + rectH);\par
+    ctx.lineTo(this.blockX + 5, this.blockY + rectH + 5);\par
+    ctx.lineTo(this.blockX + rectW + 5, this.blockY + rectH + 5);\par
+    ctx.lineTo(this.blockX + rectW + 5, this.blockY + 5);\par
+    ctx.lineTo(this.blockX + rectW, this.blockY);\par
+    ctx.lineTo(this.blockX, this.blockY + rectH);\par
+    ctx.stroke();\par
+    ctx.fill();\par
+    ctx.closePath();\par
+\par
+    ctx.strokeStyle = this.opt.colorStroke;\par
+    //ctx.lineWidth = 5;\par
+    //ctx.lineJoin = "round";\par
+    ctx.fillStyle = this.opt.colorFill;\par
+    ctx.beginPath();\par
+    ctx.rect(this.blockX, this.blockY, rectW, rectH);\par
+    ctx.stroke();\par
+    ctx.fill();\par
+    ctx.closePath();\par
+\par
+  \par
+   if(this.crashColor)\{\par
+        ctx.fillStyle = "rgba(255,255,255,0.4)";\par
+        ctx.beginPath();\par
+        ctx.moveTo(this.blockX,this.blockY);\par
+        ctx.lineTo(this.blockX,this.blockY+rectH);\par
+        ctx.lineTo(this.blockX + 5, this.blockY + rectH + 5);\par
+        ctx.lineTo(this.blockX + rectW + 5, this.blockY + rectH + 5);\par
+        ctx.lineTo(this.blockX + rectW + 5, this.blockY + 5);\par
+        ctx.lineTo(this.blockX + rectW, this.blockY);\par
+        //ctx.rect(this.blockX, this.blockY, rectW, rectH);\par
+        ctx.closePath();\par
+        ctx.fill();\par
+       \par
+      \}\par
+       if(this.gun)\{\par
+        ctx.beginPath();\par
+        ctx.strokeStyle = this.opt.colorShadow;\par
+        ctx.fillStyle = this.opt.colorStrokeShadow;\par
+        ctx.arc(this.blockX + rectW/2, this.blockY + rectH/2, 10, 0, 2 * Math.PI);       \par
+        ctx.rect(this.blockX + rectW/2 - 3, this.blockY + rectH/2, 5, 15);        \par
+        ctx.stroke();\par
+        ctx.fill();\par
+        ctx.closePath();\par
+        ctx.beginPath();\par
+        ctx.fillStyle = this.opt.colorStroke;\par
+        ctx.arc(this.blockX + rectW/2, this.blockY + rectH/2, 4, 0, 2 * Math.PI); \par
+        ctx.stroke();         \par
+        ctx.fill();\par
+        ctx.closePath();\par
+      \}\par
+    \};//draw\par
+\par
+      this.move = function () \{\par
+            this.blockY +=calcDistanceToMove(delta, this.speed);\par
+            \par
+      \};//move   \par
+  \par
+\}\par
+\par
+//-------------------------------------------------------------\par
+// Inits\par
+window.onload = function init() \{\par
+    var game = new GF();\par
+    game.start();\par
+\};\par
+\par
+// GAME FRAMEWORK STARTS HERE\par
+var GF = function () \{\par
+\par
+      var assetsToLoadURLs = \{\par
+         spritesheet    :\{url: "{{\field{\*\fldinst{HYPERLINK https://mainline.i3s.unice.fr/mooc/StarWarriors/assets/Ships_2.svg }}{\fldrslt{https://mainline.i3s.unice.fr/mooc/StarWarriors/assets/Ships_2.svg\ul0\cf0}}}}\f2\fs24 ", type:"image"\},\par
+         spriteBlock    :\{url: "{{\field{\*\fldinst{HYPERLINK https://mainline.i3s.unice.fr/mooc/StarWarriors/assets/block-crash.svg }}{\fldrslt{https://mainline.i3s.unice.fr/mooc/StarWarriors/assets/block-crash.svg\ul0\cf0}}}}\f2\fs24 ",  type:"image"\},\par
+         mainBackground :\{url: "{{\field{\*\fldinst{HYPERLINK https://mainline.i3s.unice.fr/mooc/StarWarriors/assets/Cosmo-background.jpg }}{\fldrslt{https://mainline.i3s.unice.fr/mooc/StarWarriors/assets/Cosmo-background.jpg\ul0\cf0}}}}\f2\fs24 ",  type:"image"\},\par
+         helperSound    : \{url: "{{\field{\*\fldinst{HYPERLINK https://mainline.i3s.unice.fr/mooc/StarWarriors/assets/0B_E4HKbPQZo6MFBDb3JsVFRxN1E.mp3 }}{\fldrslt{https://mainline.i3s.unice.fr/mooc/StarWarriors/assets/0B_E4HKbPQZo6MFBDb3JsVFRxN1E.mp3\ul0\cf0}}}}\f2\fs24 ", buffer: false, loop: false, volume: 1.0,  type:"sound"\},\par
+         bombsFly       : \{url: "{{\field{\*\fldinst{HYPERLINK https://mainline.i3s.unice.fr/mooc/StarWarriors/assets/0B_E4HKbPQZo6OEFZYzZ3ajNEUVk.mp3 }}{\fldrslt{https://mainline.i3s.unice.fr/mooc/StarWarriors/assets/0B_E4HKbPQZo6OEFZYzZ3ajNEUVk.mp3\ul0\cf0}}}}\f2\fs24 ", buffer: false, loop: false, volume: 1.0, type:"sound"\},\par
+         clickCosmos    : \{url: "{{\field{\*\fldinst{HYPERLINK https://mainline.i3s.unice.fr/mooc/StarWarriors/assets/0B_E4HKbPQZo6MDFPaFkwdjJSY3M.mp3 }}{\fldrslt{https://mainline.i3s.unice.fr/mooc/StarWarriors/assets/0B_E4HKbPQZo6MDFPaFkwdjJSY3M.mp3\ul0\cf0}}}}\f2\fs24 ", buffer: false, loop: false, volume: 1.0, type:"sound"\},\par
+         clickMenu      : \{url: "{{\field{\*\fldinst{HYPERLINK https://mainline.i3s.unice.fr/mooc/StarWarriors/assets/0B_E4HKbPQZo6WTltOXBVaE5vb1E.mp3 }}{\fldrslt{https://mainline.i3s.unice.fr/mooc/StarWarriors/assets/0B_E4HKbPQZo6WTltOXBVaE5vb1E.mp3\ul0\cf0}}}}\f2\fs24 ", buffer: false, loop: false, volume: 1.0, type:"sound"\},\par
+         littleClick    : \{url: "{{\field{\*\fldinst{HYPERLINK https://mainline.i3s.unice.fr/mooc/StarWarriors/assets/0B_E4HKbPQZo6TVROZWxfenIzMUE.mp3 }}{\fldrslt{https://mainline.i3s.unice.fr/mooc/StarWarriors/assets/0B_E4HKbPQZo6TVROZWxfenIzMUE.mp3\ul0\cf0}}}}\f2\fs24 ", buffer: false, loop: false, volume: 1.0, type:"sound"\},\par
+         strangerHit    : \{url: "{{\field{\*\fldinst{HYPERLINK https://mainline.i3s.unice.fr/mooc/StarWarriors/assets/0B_E4HKbPQZo6WDBhMzJrM29fYXc.mp3 }}{\fldrslt{https://mainline.i3s.unice.fr/mooc/StarWarriors/assets/0B_E4HKbPQZo6WDBhMzJrM29fYXc.mp3\ul0\cf0}}}}\f2\fs24 ", buffer: false, loop: false, volume: 1.0, type:"sound"\},\par
+         tuk            : \{url: "{{\field{\*\fldinst{HYPERLINK https://mainline.i3s.unice.fr/mooc/StarWarriors/assets/0B_E4HKbPQZo6Y0ZYbHZYeU1CNnM.mp3 }}{\fldrslt{https://mainline.i3s.unice.fr/mooc/StarWarriors/assets/0B_E4HKbPQZo6Y0ZYbHZYeU1CNnM.mp3\ul0\cf0}}}}\f2\fs24 ", buffer: false, loop: false, volume: 1.0, type:"sound"\},\par
+         tukLouder      : \{url: "{{\field{\*\fldinst{HYPERLINK https://mainline.i3s.unice.fr/mooc/StarWarriors/assets/0B_E4HKbPQZo6TTRmQ2c0QjBEb1E.mp3 }}{\fldrslt{https://mainline.i3s.unice.fr/mooc/StarWarriors/assets/0B_E4HKbPQZo6TTRmQ2c0QjBEb1E.mp3\ul0\cf0}}}}\f2\fs24 ", buffer: false, loop: false, volume: 1.0, type:"sound"\},\par
+         fire           : \{url: "{{\field{\*\fldinst{HYPERLINK https://mainline.i3s.unice.fr/mooc/StarWarriors/assets/0B_E4HKbPQZo6blZhMV9FSTl4UHM.mp3 }}{\fldrslt{https://mainline.i3s.unice.fr/mooc/StarWarriors/assets/0B_E4HKbPQZo6blZhMV9FSTl4UHM.mp3\ul0\cf0}}}}\f2\fs24 ", buffer: false, loop: false, volume: 1.0, type:"sound"\},\par
+         soundCrash     : \{url: "{{\field{\*\fldinst{HYPERLINK https://mainline.i3s.unice.fr/mooc/StarWarriors/assets/0B_E4HKbPQZo6X1RLSE9qTGxwYWM.mp3 }}{\fldrslt{https://mainline.i3s.unice.fr/mooc/StarWarriors/assets/0B_E4HKbPQZo6X1RLSE9qTGxwYWM.mp3\ul0\cf0}}}}\f2\fs24 ", buffer: false, loop: false, volume: 1.0, type:"sound"\},\par
+         rocketHit      : \{url: "{{\field{\*\fldinst{HYPERLINK https://mainline.i3s.unice.fr/mooc/StarWarriors/assets/0B_E4HKbPQZo6SGpyMDlRYzhydnM.mp3 }}{\fldrslt{https://mainline.i3s.unice.fr/mooc/StarWarriors/assets/0B_E4HKbPQZo6SGpyMDlRYzhydnM.mp3\ul0\cf0}}}}\f2\fs24 ", buffer: false, loop: false, volume: 1.0, type:"sound"\}        \par
+\};\par
+      // the assets variable holds the assets once loaded\par
+    var assets = \{\};\par
+    // Vars relative to the canvas\par
+    var canvas, ctx, w, h;\par
+\par
+    // vars for handling inputs\par
+    var inputStates = \{\};\par
+\par
+    // game states\par
+    var gameStates = \{\par
+        mainMenu: 0,\par
+        gameRunning: 1,\par
+        gameOver: 2\par
+    \};\par
+    var currentGameState = gameStates.mainMenu;\par
+    var currentLevel = 1;\par
+    var TIME_BETWEEN_LEVELS = 20000; // 20 seconds\par
+    var currentLevelTime = TIME_BETWEEN_LEVELS;\par
+   // var helperSound; \par
+\par
+    var TIME_ROCKET_CRASH = 1500;\par
+    var currTimeRocketCrash;\par
+    var rocket;\par
+    var rocketCrash;\par
+    var strangerCrash;\par
+\par
+    var fires = [];  \par
+    var firesTotal = 3;\par
+    var enemy=[];\par
+    var bombs=[];\par
+    var guns=[];\par
+    var crashEnemy=[];\par
+    var crashBlock = [];\par
+\par
+     var strangerPicture;\par
+     var rocketPicture;\par
+\par
+    var gridLength = 16;\par
+    var line = []; \par
+    var randBin=[];\par
+ \par
+    var rectW = 47;\par
+    var rectH = 37;\par
+    var allBlocks = [];\par
+    var nbOfBlocks = 10;//20;\par
+    var grid = [];\par
+ //  var numStrGrid = 0;\par
+    var Y_START = -rectH-3;\par
+    var Y_FINISH = h;\par
+    var SPEED_START = 40;\par
+    var indexNewLine;\par
+    var flagRemoveLine = false; \par
+    var score=0;\par
+    var maxScore=0;\par
+    var finish=false;\par
+\par
+            var BLOCK_CRASH_BEGIN   = 1 ;\par
+            var BLOCK_CRASH_NB      = 6  ;\par
+            var BLOCK_NB_STRING     =  1 ;\par
+            var BLOCK_NB_COLUMN     =  6 ; \par
+\par
+            var STRANGER_CRASH_BEGIN   = 11+3;\par
+            var STRANGER_CRASH_NB      = 9; \par
+\par
+            var SHEET_NB_STRING     =   2 ;\par
+            var SHEET_NB_COLUMN     =  11 ; \par
+\par
+   \par
+    // clears the canvas content\par
+    function clearCanvas() \{\par
+        ctx.clearRect(0, 0, w, h);\par
+    \}\par
+\par
+    \par
+    var mainLoop = function (time) \{\par
+        //main function, called each frame \par
+        measureFPS(time);\par
+\par
+        // number of ms since last frame draw\par
+        delta = timer(time);\par
+\par
+        // Clear the canvas\par
+        clearCanvas();\par
+\par
+        switch (currentGameState) \{\par
+            case gameStates.gameRunning:\par
+                \par
+                  \par
+              if (!rocket.crash) \{console.log("rocket.crash="+rocket.crash);\par
+                   if (!testRocketBlocks() && !testRocketStranger() && !testBulletRocket() &&\par
+                       !testBombRocket())\{\par
+                                           rocket.draw(ctx,w,h,1);\par
+                      if (rocket.hitRocket) \{\par
+                                            assets.rocketHit.play();\par
+                                             rocket.timeAfterHit -= delta;\par
+                                             if (rocket.timeAfterHit<=0)\{rocket.hitRocket=false;\par
+                                                                         rocket.timeAfterHit=500;\par
+                                                                         \} \par
+                                            \}// if (rocket.hitRocket)\par
+                                    \}\par
+                                     else\{ \par
+                                           console.log("\'f0\'e0\'ea\'e5\'f2\'e0 \'f0\'e0\'e7\'e1\'e8\'f2\'e0 !!!!!"); \par
+                                           rocket.crash=true;\par
+                                           assets.soundCrash.play();\par
+                                           currTimeRocketCrash = TIME_ROCKET_CRASH;\par
+                                           break;\par
+                                          \}\par
+                                  \}//if (!rocket.crash)\par
+                            else \{   rocketCrash.draw(ctx,rocket.x,rocket.y,1);\par
+                                     currTimeRocketCrash -= delta;               \par
+                                     if (currTimeRocketCrash < 0) \{\par
+                                      currentGameState=gameStates.gameOver;\par
+                                      break;\par
+                                     \}\par
+                                  \}       \par
+                                       drawFire(fires,ctx);                                       updateRocketPosition(delta);                 \par
+                 updateBlock();\par
+                 \par
+                 if(guns.length)\{\par
+                    updateBullets();\par
+                    if(guns.length)\{\par
+                       for(var i=0; i< guns.length; i++)\par
+                       \{ \par
+                        var lastBullet = guns[i][guns[i].length - 1];\par
+                    //    console.log("i="+i+" time ="+lastBullet.time +" index="+lastBullet.index+\par
+                    //                 " y="+lastBullet.y);\par
+                        if(allBlocks[lastBullet.index].gun)\{\par
+                      if(lastBullet.time>0) lastBullet.time -= delta;\par
+                      if(lastBullet.time <= 0)\{guns[i].push(new Bullet(lastBullet.index,\par
+                                                            allBlocks[lastBullet.index].blockX+allBlocks[lastBullet.index].rectW/2,\par
+                                                          allBlocks[lastBullet.index].blockY+allBlocks[lastBullet.index].rectH,\par
+                                                          3,100,0,1,3000));  \par
+                                               assets.tuk.play();\par
+                                              \}  \par
+                        \}                                                     \par
+                    \}//for\par
+                    \}//  if(guns.length)  \par
+                 \}//if guns.length\par
+                   /*  for (var i = 0; i < guns.length; i++) \{\par
+                        console.log("i="+i);\par
+                        for (var ii = 0; ii < guns[i].length; ii++) \{\par
+                          console.log("index="+guns[i][ii].index+" time="+guns[i][ii].time);\par
+                        \}                          \par
+                       \}  */\par
+                 updateEnemy();\par
+                 if(enemy.length>0) \par
+                     if (testFireEnemy() >= 0)\{// console.log("it's time update bombs");\par
+                                                moveFire(fires,true);              \par
+                                               \} \par
+                 if(bombs.length>0)updateBombs();\par
+                 //---------------------------------------------------------------------\par
+                 if(crashEnemy.length)\par
+                     for (var i = 0; i < crashEnemy.length; i++) \{\par
+                       crashEnemy[i].draw(ctx);\par
+                       crashEnemy[i].time -= delta;               \par
+                       if ( crashEnemy[i].time< 0) crashEnemy.splice(i,1);\par
+                     \}//for\par
+                 //----------------------------------------------------------------------\par
+                  if(crashBlock.length)\par
+                     for (var i = 0; i < crashBlock.length; i++) \{\par
+                       crashBlock[i].draw(ctx);\par
+                       crashBlock[i].time -= delta;               \par
+                       if ( crashBlock[i].time< 0) crashBlock.splice(i,1);\par
+                     \}//for    \par
+                 //------------------------------------------------------------------------\par
+                 var yTarget = testFireBlocks(fires);\par
+                // \'e5\'f1\'f2\'fc \'ef\'ee\'ef\'e0\'e4\'e0\'ed\'e8\'e5 - \'e7\'e0\'ea\'ee\'ed\'f7\'e8\'f2\'fc \'e2\'fb\'e2\'ee\'e4 \'ee\'e3\'ed\'ff \'ed\'e0 \'f6\'e5\'eb\'e8,\par
+                // \'e8\'ed\'e0\'f7\'e5 - \'e4\'e2\'e8\'e3\'e0\'f2\'fc \'e4\'ee \'e2\'e5\'f0\'f5\'e0 \'fd\'ea\'f0\'e0\'ed\'e0\par
+                   switch (yTarget)\{\par
+                    case -1:\par
+                    moveFire(fires,false);\par
+                    break;\par
+                    case -2:\par
+                    moveFire(fires, true);\par
+                    break;\par
+                    default:                                \par
+                    moveFire(fires, true, yTarget);\par
+                       \}                                 \par
+                // display Score\par
+                displayScore();\par
+\par
+                // decrease currentLevelTime. \par
+                // When < 0 go to next level\par
+                \par
+                currentLevelTime -= delta;\par
+               \par
+                if (currentLevelTime < 0) \{\par
+                                            goToNextLevel();\par
+                \}\par
+                /*\par
+                if(finish===true) currentGameState= gameStates.gameOver;\par
+                */\par
+                break;\par
+            case gameStates.mainMenu:\par
+                // TO DO !               \par
+                ctx.save();\par
+                ctx.fillStyle = "rgb(0,168,203)";\par
+                ctx.font = "26px Arial";\par
+                ctx.fillText("Press ENTER to start", 450, 190);\par
+                ctx.font = "20px Arial";\par
+                ctx.fillText("Created by Inga Berezhna", 25, 400);\par
+                ctx.fillText("and Katerina Berezhna", 135, 430);\par
+                ctx.restore();\par
+                ctx.save();\par
+                ctx.lineWidth = 7;\par
+                ctx.lineCap = "round";\par
+                ctx.strokeStyle = "rgba(255,255,255,0.8)";\par
+                ctx.shadowBlur = 10;\par
+                ctx.shadowColor = "rgba(255, 255, 255, 0.7)";\par
+                ctx.rotate(-50 * Math.PI / 180);\par
+                rocketPicture.draw(ctx, -200, 500, 7);\par
+                ctx.strokeStyle = "rgba(255,255,255,1)";     \par
+                ctx.beginPath();\par
+                ctx.moveTo(80,450);\par
+                ctx.lineTo(80,350);\par
+                ctx.stroke();\par
+                ctx.closePath();\par
+                ctx.restore();\par
+\par
+                ctx.save();\par
+                ctx.rotate(-35 * Math.PI / 180);\par
+                strangerPicture.draw(ctx,-120,20,4);\par
+                ctx.restore();\par
+                ctx.save();\par
+                ctx.fillStyle = "rgb(217,103,255)";\par
+                ctx.font = "76px Arial";\par
+                ctx.fillText("Star Warriors", 300, 120);\par
+                 \par
+                ctx.font = "12px Arial";\par
+                ctx.fillText("Music from AstroMenace Artwork ver 1.2 Copyright (c) 2006-2007 Michael Kurinnoy, Viewizard", 20, 480);\par
+                ctx.restore();\par
+                if(inputStates.enter)\{\par
+                    currentGameState = gameStates.gameRunning;\par
+                   //  assets.spaceMusic.stop();\par
+                \}\par
+                break;\par
+            case gameStates.gameOver:\par
+            \par
+                ctx.font = "40px Arial";\par
+                ctx.fillStyle = "rgb(217,103,255)";\par
+                \par
+                if (finish===true)\{console.log("finish="+finish);\par
+                                   ctx.fillText("You have finished your mission", 200, 200);\par
+                                  \}\par
+                            else   ctx.fillText("GAME OVER", 250, 150);    \par
+                ctx.font = "25px Arial";\par
+                ctx.fillText("High Score : "+  maxScore,290, 250);\par
+                ctx.fillText("Your Score : " + score,   290, 290);\par
+                ctx.fillText("Your Time  : " + (((currentLevel-1)*TIME_BETWEEN_LEVELS+\par
+                                             (TIME_BETWEEN_LEVELS-currentLevelTime))/1000).toFixed(0), 290, 330);\par
+\par
+                ctx.font = "20px Arial";\par
+                ctx.fillText("Press ENTER to start again", 260, 450);\par
+                if (inputStates.enter) \{\par
+                    startNewGame();\par
+                    currentGameState = gameStates.gameRunning;\par
+                \}\par
+                break;\par
+        \}\par
+\par
+        // call the animation loop every 1/60th of second\par
+        requestAnimationFrame(mainLoop);\par
+    \};\par
+    function startMenu()\{\par
+        currentGameState = gameStates.mainMenu;\par
+    \}\par
+\par
+    function startNewGame() \{\par
+       \par
+       if(score > maxScore) maxScore=score;\par
+       score=0;\par
+       enemy=[];\par
+       bombs=[];\par
+       guns=[];\par
+       grid=[];\par
+       crashEnemy=[];\par
+       crashBlock = [];\par
+       allBlocks = [];\par
+       nbOfBlocks=10;\par
+        currentLevelTime = TIME_BETWEEN_LEVELS;\par
+        currentLevel =1;\par
+        finish=false;\par
+           //\'e8\'ed\'e8\'f6-\'f6\'e8\'ff \'ec\'e0\'f1\'f1\'e8\'e2\'e0 \'e1\'eb\'ee\'ea\'ee\'e2\par
+          for(var i=0;i<nbOfBlocks;i++)\par
+          \{\par
+            allBlocks[i]=new Block(0,Y_START,SPEED_START,rectW,rectH,"optNormal",false,\par
+                              assets.spritesheet,false);\par
+          \}\par
+          for(var i=0;i<gridLength;i++) line[i]=0;\par
+            setNewLine();\par
+\par
+       rocket.crash = false;\par
+       rocket.maxHitpoint = 3;\par
+       rocket.hitpoint = 3;\par
+       rocket.hitRocket = false;\par
+       rocket.timeAfterHit = 500;\par
+       \par
+       rocket = new Rocket(w/2-15,h-60,80,80,rocketPicture,rocketPictureSecond,20); \par
+       // currentGameState = gameStates.gameRunning;\par
+    \}\par
+\par
+    function goToNextLevel() \{\par
+        \par
+        // reset time available for next level\par
+        // 5 seconds in this example\par
+        currentLevelTime = TIME_BETWEEN_LEVELS;\par
+        currentLevel++;\par
+        allBlocks.push(new Block(0,Y_START,SPEED_START,rectW,rectH,"optNormal",false,\par
+                              assets.spritesheet,false));\par
+        nbOfBlocks++;\par
+   \par
+    \}\par
+\par
+    function displayScore() \{\par
+        ctx.save(); \par
+        ctx.fillStyle = "rgb(0,168,203)";\par
+        ctx.font = "22px Arial";\par
+        ctx.fillText("Level: " + currentLevel, 640, 460);\par
+        ctx.fillText("Time: " + (currentLevelTime / 1000).toFixed(0), 640, 490);\par
+       //  ctx.fillText("Time: " + currentLevelTime / 1000, 640, 490);\par
+        ctx.fillText("Score:" + score,10, 490);\par
+      //  ctx.fillText("max Score:" + maxScore,640, 490);\par
+        ctx.restore();\par
+    \}\par
+\par
+\par
+    function updateRocketPosition(delta) \{\par
+        rocket.speedX = rocket.speedY = 0;\par
+        // check inputStates\par
+        if (inputStates.left) \{\par
+            rocket.speedX = -rocket.speed;\par
+        \}\par
+        if (inputStates.up) \{\par
+            rocket.speedY = -rocket.speed;\par
+        \}\par
+        if (inputStates.right) \{\par
+            rocket.speedX = rocket.speed;\par
+           \par
+        \}\par
+        if (inputStates.down) \{\par
+            rocket.speedY = rocket.speed;\par
+        \}\par
+        if (inputStates.space && fires.length < firesTotal) \{\par
+         /* console.log("fires.push="+rocket.y);  \par
+         fires.push([rocket.x+rocket.width/2, rocket.y]);*/\par
+         //\'e5\'f1\'eb\'e8 \'fd\'f2\'ee \'ed\'e0\'f7\'e0\'eb\'ee \'ee\'e3\'ed\'ff, \'ef\'f0\'ee\'f1\'f2\'ee \'e4\'ee\'e1\'e0\'e2\'e8\'f2\'fc \'ea\'ee\'ee\'f0\'e4-\'f2\'fb\par
+        if(fires[0]===undefined) \{ fires.push([rocket.x+rocket.width/2, rocket.y]);\par
+                                    assets.fire.play();\}\par
+                         else // \'e8\'ed\'e0\'f7\'e5 \'f1\'eb\'e5\'e4\'f3\'fe\'f9\'e8\'e9 \'e2\'fb\'f1\'f2\'f0\'e5\'eb \'ef\'e8\'f1\'e0\'f2\'fc,\'ea\'ee\'e3\'e4\'e0 \'ef\'f0\'e5\'e4\'fb\'e4.\'ef\'f0\'ee\'f8\'e5\'eb 40 \'ef\'e8\'ea\'f1\'e5\'eb\'e5\'e9\par
+                             if(fires[fires.length-1][1]+40<rocket.y)\{ fires.push([rocket.x+rocket.width/2, rocket.y]);\par
+                             assets.fire.play();\}\par
+              \}\par
+       /* if (inputStates.mousePos) \{\par
+        \}\par
+        if (inputStates.mousedown) \{\par
+            rocket.speed = 500;\par
+        \} else \{\par
+            // mouse up\par
+        \}*/\par
+            rocket.speed = 100;\par
+        \par
+        \par
+        // Compute the incX and inY in pixels depending\par
+        // on the time elasped since last redraw\par
+        rocket.x += calcDistanceToMove(delta, rocket.speedX);\par
+        rocket.y += calcDistanceToMove(delta, rocket.speedY);\par
+       \par
+    \}\par
+    function updateBlock()\{ \par
+         var flagRemoveLine = false; \par
+\par
+         //------------------------------------------\par
+         // \'ef\'ee\'e4\'f1\'f7\'e8\'f2\'e0\'f2\'fc \'ea\'ee\'eb-\'e2\'ee \'f0\'e0\'e1\'ee\'f7\'e8\'f5 \'e1\'eb\'ee\'ea\'ee\'e2 \'e2 allBlocks\par
+         var sum=0;\par
+         for (var i = 0; i < allBlocks.length; i++) \{\par
+         if(allBlocks[i].worked===true) \{sum++;\}\par
+         \}//sum\par
+         //\'e5\'f1\'eb\'e8 \'f0\'e0\'e1\'ee\'f7\'e8\'f5 \'e1\'eb\'ee\'ea\'ee\'e2 \'ed\'e5\'f2,\'f2\'ee \'fd\'ea\'f0\'e0\'ed \'ef\'f3\'f1\'f2 \'e8 \'ed\'e0\'e4\'ee \'f1\'ee\'e7\'e4\'e0\'e2\'e0\'f2\'fc \'ed\'ee\'e2\'f3\'fe \'eb\'e8\'ed\'e8\'fe \'e8 \'e7\'e0\'ef\'e8\'f1\'e0\'f2\'fc \'e5\'e5 \'e2 grid\par
+         if(sum===0)\{setNewLine();\par
+                     console.log("\'f1\'ee\'e7\'e4\'e0\'e5\'ec \'eb\'e8\'ed\'e8\'fe \'ef\'ee\'f1\'eb\'e5 \'ef\'f3\'f1\'f2\'ee\'e3\'ee \'fd\'ea\'f0\'e0\'ed\'e0");\par
+                     \} \par
+        //-----------------------------------------------------------------------------------------\par
+         //\'e4\'e0\'f2\'fc \'ef\'f0\'e8\'f0\'e0\'f9\'e5\'ed\'e8\'e5  \'ea\'ee\'ee\'f0\'e4\'e8\'ed\'e0\'f2\'e5 y \'e1\'eb\'ee\'ea\'e0\'ec \'ed\'e0 \'fd\'ea\'f0\'e0\'ed\'e5\par
+         for (var i = 0; i < allBlocks.length; i++) \{\par
+         var block = allBlocks[i];\par
+         if(block.worked)\{\par
+                           block.move();\par
+                         \}\par
+      \par
+         //\'e5\'f1\'eb\'e8 y \'e1\'eb\'ee\'ea\'e0 \'e1\'ee\'eb\'fc\'f8\'e5 \'fd\'ea\'f0\'e0\'ed\'ed\'ee\'e3\'ee,\'f1\'e4\'e5\'eb\'e0\'f2\'fc \'e5\'e3\'ee \'ed\'e5\'f0\'e0\'e1\'ee\'f7\'e8\'ec \'e8 \'f3\'f1\'f2\'e0\'ed\'ee\'e2\'e8\'f2\'fc \'e5\'e3\'ee "y" \'ed\'e0 \'f1\'f2\'e0\'f0\'f2\par
+         // \'e0 \'f2\'e0\'ea\'e6\'e5 \'f3\'f1\'f2\'e0\'ed\'ee\'e2\'e8\'f2\'fc \'f4\'eb\'e0\'e3 flagRemoveLine - \'ef\'f0\'e8\'e7\'ed\'e0\'ea,\'f7\'f2\'ee \'ef\'ee\'f0\'e0 \'f4\'ee\'f0\'ec\'e8\'f0\'ee\'e2\'e0\'f2\'fc \'ed\'ee\'e2\'f3\'fe \'eb\'e8\'ed\'e8\'fe\par
+        // for (var i = 0; i < allBlocks.length; i++) \{                           \par
+         if(allBlocks[i].blockY >= 500)\{\par
+                                  flagRemoveLine = true;\par
+                                  allBlocks[i].worked=false;  \par
+                                  allBlocks[i].blockY=Y_START; \par
+                                  allBlocks[i].gun=false;                                                                 \par
+                                  \}\par
+         \}// for i allBlocks.length\par
+         //--------------------------------------------------------------------------               \par
+         //\'e5\'f1\'eb\'e8 \'e1\'eb\'ee\'ea\'e8 \'e2\'fb\'ef\'ee\'eb\'e7\'eb\'e8 \'f1 \'fd\'ea\'f0\'e0\'ed\'e0 \'e2\'ed\'e8\'e7\par
+         if (flagRemoveLine) \{// setNewLine();\par
+                                grid.shift();\par
+                             \}\par
+             // indexNewLine - \'e8\'ed\'e4\'e5\'ea\'f1 \'e1\'eb\'ee\'ea\'e0 \'e2 \'ef\'ee\'f1\'eb\'e5\'e4\'ed\'e5\'e9 \'f1\'ee\'e7\'e4\'e0\'ed\'ed\'ee\'e9 \'eb\'e8\'ed\'e8\'e8,\par
+         // \'ea\'e0\'ea \'f2\'ee\'eb\'fc\'ea\'ee \'ea\'ee\'ee\'f0\'e4-\'f2\'e0 \'f3 \'f2\'e0\'ea\'ee\'e3\'ee \'e1\'eb\'ee\'ea\'e0 \'f1\'f2\'e0\'ed\'e5\'f2 > 0,\'f2.\'e5.\'ef\'ee\'ff\'e2\'e8\'f2\'f1\'ff \'ed\'e0 \'fd\'ea\'f0\'e0\'ed\'e5,\par
+         // \'ec\'ee\'e6\'ed\'ee \'f1\'ee\'e7\'e4\'e0\'e2\'e0\'f2\'fc \'ed\'ee\'e2\'f3\'fe \'eb\'e8\'ed\'e8\'fe\par
+       //  if(currentLevelTime>1000)\{\par
+         if(indexNewLine!==undefined)\{\par
+             if(isFreeBlock())\{\par
+                               //console.log("indexNewLine ="+indexNewLine+"  \'f1\'ee\'e7\'e4\'e0\'e5\'ec \'eb\'e8\'ed\'e8\'fe");\par
+                               if (allBlocks[indexNewLine].blockY>=0) setNewLine();\par
+                               \}\par
+         \} //  if(indexNewLine!==undefined)  \par
+       //                           \}\par
+         //--------------------------------------------\par
+         \par
+         //\'e2\'fb\'ee\'e4 grid \'ed\'e0 \'fd\'ea\'f0\'e0\'ed\par
+         if(grid.length !== undefined)\{\par
+         //\'e2\'fb\'e2\'e5\'f1\'f2\'e8 \'ed\'e0 \'fd\'ea\'f0\'e0\'ed \'e2\'f1\'e5 \'f0\'e0\'e1\'ee\'f7\'e8\'e5 \'e1\'eb\'ee\'ea\'e8 \par
+         for(var kol=grid.length-1; kol>=0; kol--)        \par
+         \par
+             for (var i = 0; i < grid[kol].length; i++) \par
+             \{  var ind=grid[kol][i];\par
+                if(allBlocks[ind].worked === true) allBlocks[ind].draw(ctx);\par
+             \}\par
+         \}//if(grid.length !== undefined)\par
+\par
+      \}//  function updateBlock() \par
+    //-----------------------enemy--------------------\par
+\par
+    function updateEnemy()\{\par
+        for (var i = 0; i < enemy.length; i++) \{\par
+            enemy[i].draw(ctx,enemy[i].x,enemy[i].y,1);\par
+            enemy[i].move(rocket.x,rocket.width);\par
+            if (enemy[i].hitStranger) \{\par
+                  enemy[i].timeAfterHit -= delta;\par
+                  if (enemy[i].timeAfterHit<=0)\{enemy[i].hitStranger=false;\par
+                                                enemy[i].timeAfterHit=100;\par
+                                                \} \par
+                  \}\par
+        \}\par
+    \}\par
+   //-----------------------------------------------------------------------\par
+      function testFireEnemy()\{\par
+         var rez=-1;\par
+         var arr=[];\par
+         var indexDel=[];\par
+      if (fires.length>0)\{\par
+         for (var i = 0; i < enemy.length; i++) \{\par
+\par
+        // for(var j=0; j< fires.length; j++)\{                 \par
+             if(circRectsOverlap(enemy[i].x, enemy[i].y,enemy[i].width,enemy[i].height,\par
+                                 fires[0][0],fires[0][1],2))\{\par
+                if(enemy[i].hitpoint >1)\{  assets.strangerHit.play();\par
+                    enemy[i].decreaseHit();\par
+                    //\'e8\'e7\'ec\'e5\'ed\'e8\'f2\'fc \'e2\'e8\'e4 stranger \'ed\'e0 strangerPictureSecond \par
+                    enemy[i].hitStranger = true;\par
+                    score+=2;\par
+                    return rez = 0;\par
+                \}else\{assets.bombsFly.play();\par
+               // \'ef\'ee\'ef\'e0\'e4\'e0\'ed\'e8\'e5 \'e2 enemy,\'f7\'e5\'f0\'e5\'e7 \'ef\'f0\'ee\'ec\'e5\'e6\'f3\'f2\'ee\'ea \'e2\'f0\'e5\'ec\'e5\'ed\'e8 \'f1\'ee\'e7\'e4\'e0\'f2\'fc \'ec\'e0\'f1\'f1\'e8\'e2 \'e1\'ee\'ec\'e1\par
+               enemy[i].crash=true;\par
+               score+=4;\par
+               for(k=0;k<5;k++)\par
+               \{arr.push(new Bomb(enemy[i].x, enemy[i].y,5,30,-20+k*10,1+Math.random()*4));\}\par
+               //\'e2 crashEnemy \'e4\'ee\'e1\'e0\'e2\'e8\'f2\'fc \'ee\'e1\'fa\'e5\'ea\'f2 \'e4\'eb\'ff \'e2\'fb\'e2\'ee\'e4\'e0 crashStranger \par
+            var strangerCrash = new Sprite();             \par
+            strangerCrash.extractSprites(assets.spritesheet,STRANGER_CRASH_BEGIN,\par
+                                STRANGER_CRASH_NB, \par
+                                SHEET_NB_COLUMN,SHEET_NB_STRING );            \par
+            strangerCrash.setNbImagesPerSecond(8);\par
+               crashEnemy.push(new CrashStranger(false,enemy[i].x,enemy[i].y,strangerCrash,1125));\par
+            rez=1;\par
+            indexDel.push(i);//\'e7\'e0\'ef\'e8\'f1\'e0\'f2\'fc \'e8\'ed\'e4\'e5\'ea\'f1 enemy,\'e2 \'ea\'ee\'f2\'ee\'f0\'fb\'e9 \'ef\'ee\'ef\'e0\'eb\'e8,\'f7\'f2\'ee\'e1\'fb \'f3\'e4\'e0\'eb\'e8\'f2\'fc \'e5\'e3\'ee \'e8\'e7 \'ec\'e0\'f1\'f1\'e8\'e2\'e0 enemy\par
+            // console.log("enemy kill !!!!!!!");   \par
+            \}//if hitpoint        \par
+           \}//if (circRectsOverlap\par
+           if(arr.length !==0)\{ bombs.push(arr);\par
+                               // console.log("i="+i);\par
+                               // console.log("bombs="+bombs[i][0].x+" rez="+rez);\par
+                              \}\par
+                                \par
+         \}//for  i\par
+         //\'f3\'e1\'f0\'e0\'f2\'fc enemy[i] \'e8\'e7 \'ec\'e0\'f1\'f1\'e8\'e2\'e0\par
+         if(rez===1)\{for (var i = 0; i < indexDel.length; i++) \{                       \par
+                       enemy.splice(indexDel[i],1);\par
+                      \} \par
+                 \}\par
+      \}//if (fires.length>0)\par
+     return rez;\par
+\par
+     \}  \par
+     //----------------------------------------------------------------------------\par
+    function updateBombs()\{\par
+       // console.log("\'e2\'fb\'e2\'ee\'e4\'e8\'ec \'e1\'ee\'ec\'e1\'fb");\par
+        for (var i=0;i<bombs.length;i++)\{\par
+            for(var ii=0;ii<bombs[i].length;ii++)\{\par
+          //  console.log("bombs.x="+bombs[i][ii].x);\par
+            bombs[i][ii].draw(ctx);\par
+            bombs[i][ii].move (h);\par
+            if(bombs[i][ii].remove) bombs[i].splice(ii,1);\par
+            \}\par
+          if(bombs[i].length === 0)\{bombs.splice(i,1);\} \par
+        \}\par
+    \}\par
+    function updateBullets()\{\par
+        for (var i = 0; i < guns.length; i++) \{\par
+            for (var ii = 0; ii < guns[i].length; ii++) \{\par
+                guns[i][ii].draw(ctx);\par
+                 guns[i][ii].move(h,delta);\par
+                 if(guns[i][ii].remove) guns[i].splice(ii,1);\par
+            \}\par
+            if(guns[i].length === 0)\{guns.splice(i,1);\} \par
+        \}\par
+    \}\par
+    //-------------------------------------------------------------------------------------\par
+    function testBulletRocket()\{\par
+        \par
+        for (var i = 0; i < guns.length; i++) \{\par
+            for (var ii = 0; ii < guns[i].length; ii++) \{\par
+              if( circRectsOverlap(rocket.x+20, rocket.y+10,rocket.width-40,rocket.height-20,\par
+                                      guns[i][ii].x,guns[i][ii].y,guns[i][ii].r))\{\par
+                //\'f3\'e4\'e0\'eb\'e8\'f2\'fc \'e8\'e7 \'ec\'e0\'f1\'f1\'e8\'e2\'e0 guns \'ef\'f3\'eb\'fe,\'ea\'ee\'f2\'ee\'f0\'e0\'ff \'ef\'ee\'f0\'e0\'e7\'e8\'eb\'e0 \'f6\'e5\'eb\'fc\par
+                  guns[i][ii].remove = true;\par
+                if(rocket.hitpoint >1)\{\par
+                                       rocket.decreaseHit();\par
+                                       //\'e8\'e7\'ec\'e5\'ed\'e8\'f2\'fc \'e2\'e8\'e4 rocket \'ed\'e0 rocketPictureSecond  \par
+                                       rocket.hitRocket = true;\par
+                                       return false;\par
+                                      \}                                 \par
+                return true;\par
+              \}//if( circRectsOverlap\par
+            \}//for ii            \par
+        \}//for i\par
+        return false;\par
+    \} \par
+    //-------------------------------------------------------------------------------\par
+     function testBombRocket()\{\par
+        \par
+        for (var i = 0; i < bombs.length; i++) \{\par
+            for (var ii = 0; ii < bombs[i].length; ii++) \{\par
+              if( circRectsOverlap(rocket.x+20, rocket.y+10,rocket.width-40,rocket.height-20,\par
+                                      bombs[i][ii].x,bombs[i][ii].y,bombs[i][ii].r))\{\par
+\par
+                //\'f3\'e4\'e0\'eb\'e8\'f2\'fc \'e8\'e7 \'ec\'e0\'f1\'f1\'e8\'e2\'e0 guns \'ef\'f3\'eb\'fe,\'ea\'ee\'f2\'ee\'f0\'e0\'ff \'ef\'ee\'f0\'e0\'e7\'e8\'eb\'e0 \'f6\'e5\'eb\'fc\par
+                  bombs[i][ii].remove = true;\par
+                if(rocket.hitpoint >1)\{ console.log("\'e1\'ee\'ec\'e1\'e0 \'ef\'ee\'ef\'e0\'eb\'e0 \'e2 \'f0\'e0\'ea\'e5\'f2\'f3");\par
+                                       rocket.decreaseHit();\par
+                                       //\'e8\'e7\'ec\'e5\'ed\'e8\'f2\'fc \'e2\'e8\'e4 rocket \'ed\'e0 rocketPictureSecond  \par
+                                       rocket.hitRocket = true;\par
+                                       return false;\par
+                                      \}                                 \par
+                return true;\par
+              \}//if( circRectsOverlap\par
+            \}//for ii            \par
+        \}//for i\par
+        return false;\par
+    \}                              \par
+    //------------------- \'f2\'e5\'f1\'f2 collision \'e1\'eb\'ee\'ea\'ee\'e2 \'f1 \'f0\'e0\'ea\'e5\'f2\'ee\'e9-----------------------------\par
+     function testRocketBlocks()\{\par
+         var rez=false;\par
+         for (var i = 0; i < allBlocks.length; i++) \{\par
+         if( rectsOverlap(rocket.x, rocket.y,rocket.width,rocket.height,\par
+                       allBlocks[i].blockX+10, allBlocks[i].blockY+5,\par
+                       allBlocks[i].rectW-20, allBlocks[i].rectH-5))\{\par
+            \par
+            allBlocks[i].worked=false;\par
+            rez=true;\par
+            break;\par
+           \}//if  \par
+        \}//for\par
+     return rez;\par
+     \} //   function testRocketBlocks()\par
+    //---------------------------------------------------------------------------------\par
+      function testRocketStranger()\{\par
+         var rez=false;\par
+         for (var i = 0; i < enemy.length; i++) \{\par
+         if( rectsOverlap(rocket.x, rocket.y,rocket.width,rocket.height,\par
+                       enemy[i].x+10, enemy[i].y+5,\par
+                       enemy[i].width-20, enemy[i].height-5))\{\par
+            //allBlocks[i].worked=false;\par
+            rez=true;\par
+            break;\par
+           \}//if  \par
+        \}//for\par
+     return rez;\par
+     \} \par
+    //------------------- \'f2\'e5\'f1\'f2 collision \'e1\'eb\'ee\'ea\'ee\'e2 \'f1 \'e2\'fb\'f1\'f2\'f0\'e5\'eb\'ee\'ec ---------------------------------------\par
+    function testFireBlocks(fires)\{\par
+         var y=-1;\par
+         if (fires.length>0)\par
+      \{\par
+          for (var i = 0; i < allBlocks.length; i++) \{\par
+\par
+                //   console.log(" \'e8\'ed\'e4\'e5\'ea\'f1 "+i+ " x="+allBlocks[i].blockX+" y="+allBlocks[i].blockY);  \par
+                if(allBlocks[i].worked)\{\par
+                    for(var ii=0; ii < fires.length; ii++)\{\par
+                    if (circRectsOverlap(allBlocks[i].blockX, allBlocks[i].blockY,\par
+                        allBlocks[i].rectW, allBlocks[i].rectH,\par
+                        fires[ii][0], fires[ii][1], 2))\par
+                     \{  //\'e1\'fb\'eb\'ee \'ef\'ee\'ef\'e0\'e4\'e0\'ed\'e8\'e5   \par
+                        score+=2;\par
+                      if(allBlocks[i].hitpoint > 1)\{ assets.littleClick.play();                     \par
+                        allBlocks[i].countHit();\par
+                        allBlocks[i].crashColor = true;\par
+                     //   console.log("hitpoint = " + allBlocks[i].hitpoint);\par
+                      //  console.log(y);\par
+                        return y = -2;\par
+                     \} else \{  //\'e1\'eb\'ee\'ea \'ec\'ee\'e6\'ed\'ee \'f3\'e1\'e8\'f0\'e0\'f2\'fc  \par
+                     score+=4;            \par
+                     //\'e7\'e0\'ef\'ee\'ec\'ed\'e8\'f2\'fc \'f3 \'e1\'eb\'ee\'ea\'e0,\'e2 \'ea\'ee\'f2\'ee\'f0\'fb\'e9 \'ef\'ee\'ef\'e0\'eb \'e2\'fb\'f1\'f2\'f0\'e5\'eb\par
+                     y=allBlocks[i].blockY;\par
+                     //\'e8\'f1\'f7\'e5\'e7\'e0\'e5\'f2 - \'f1\'e4\'e5\'eb\'e0\'f2\'fc \'e1\'eb\'ee\'ea \'ed\'e5\'f0\'e0\'e1\'ee\'f7\'e8\'ec \par
+                    allBlocks[i].worked=false;\par
+                    allBlocks[i].gun=false;\par
+                    //\'ef\'ee\'e4\'e3\'ee\'f2\'ee\'e2\'e8\'f2\'fc \'f1\'ef\'f0\'e0\'e9\'f2 \'e4\'eb\'ff \'e2\'fb\'e2\'ee\'e4\'e0 \'f0\'e0\'e7\'e1\'e8\'e2\'f8\'e5\'e3\'ee\'f1\'ff \'e1\'eb\'ee\'ea\'e0\par
+                     var pic = new Sprite();             \par
+                     pic.extractSprites(assets.spriteBlock,BLOCK_CRASH_BEGIN,\par
+                                      BLOCK_CRASH_NB, \par
+                                      BLOCK_NB_COLUMN,BLOCK_NB_STRING );            \par
+                     pic.setNbImagesPerSecond(10);\par
+\par
+                    crashBlock.push(new CrashBlock(false,allBlocks[i].blockX,allBlocks[i].blockY,pic,600));\par
+                    //\'e5\'f1\'eb\'e8 \'e1\'eb\'ee\'ea \'ea\'f0\'e0\'f1\'ed\'fb\'e9,\'f2\'ee \'f1\'f2\'f0\'ee\'e8\'f2\'fc \'ec\'e0\'f1\'f1\'e8\'e2 enemy,\'f1\'ee\'e7\'e4\'e0\'e2\'e0\'ff \'ed\'ee\'e2\'fb\'e9 stranger\par
+                    if(allBlocks[i].optName ==="optRed")\{score+=2;\par
+                    enemy.push(new Stranger (allBlocks[i].blockX+rectW/2-40,allBlocks[i].blockY,80,80,\par
+                                            strangerPicture,strangerPictureSecond,40));                        \par
+                                            \}\par
+                    allBlocks[i].blockY=Y_START;                             \par
+                                          \par
+                    //---------- \'f3\'e4\'e0\'eb\'e8\'f2\'fc \'e8\'e7 grid \'e8\'ed\'e4\'e5\'ea\'f1,\'f1\'ee\'ee\'f2\'e2.\'f3\'e4\'e0\'eb\'e5\'ed\'ed\'ee\'ec\'f3 \'e1\'eb\'ee\'ea\'f3 --------\par
+                        for(var k=0; k<grid.length; k++) \{  \par
+                          var st=grid[k];              \par
+                        for (var j = 0; j < grid[k].length; j++) \par
+                         \{ \par
+                            if (st[j]===i) \{st.splice(j,1);/*console.log("st="+st);*/\}                \par
+                         \}//for j\par
+                         if(st.length===0) \{grid.splice(k,1); \par
+                                           // console.log("grid="+grid);\par
+                                        \} \par
+                        \}//for k                   \par
+                    //--------------- \'ea\'ee\'ed\'e5\'f6 \'f3\'e4\'e0\'eb\'e5\'ed\'e8\'ff \'e8\'e7 grid ------------------------ \par
+                       assets.helperSound.play();\par
+                     \}//else if hitpoint\par
+                  \}//if (circRectsOverlap \par
+                \}//for ii\par
+              \}//if(allBlocks[i].worked)\par
+        \}//for\par
+    \}//if (fires.length)\par
+    return y;\par
+    \}//function testFireBlocks()  \par
+    \par
+    function isFreeBlock()\{\par
+   for(var i=0; i < nbOfBlocks; i++)\{\par
+          if (allBlocks[i].worked === false) return true;\par
+           \} //for\par
+          //  console.log("\'ed\'e5\'eb\'fc\'e7\'ff \'e1\'ee\'eb\'fc\'f8\'e5 \'f1\'ee\'e7\'e4\'e0\'f2\'fc \'e1\'eb\'ee\'ea\'ee\'e2");\par
+            return -1;\par
+    \} //function \par
+\par
+       function countFreeBlock()\{\par
+    var sum=0;\par
+   for(var i=0; i < nbOfBlocks; i++)\{\par
+          if (allBlocks[i].worked === false) sum++;\par
+           \} //for\par
+     return sum;\par
+    \} //function  \par
+        \par
+    //\'ed\'e0\'e9\'f2\'e8 \'e2 allBlocks \'fd\'eb\'e5\'ec\'e5\'ed\'f2 \'f1 worked=false\par
+        \par
+    //\'fd\'f2\'ee\'f2 \'e1\'eb\'ee\'ea \'e7\'e0\'ef\'e8\'f1\'e0\'f2\'fc \'e2 \'f2\'e5\'ea\'f3\'f9\'e8\'e9 \'fd\'eb-\'f2 allBlocks,\'e8\'e7\'ec\'e5\'ed\'e8\'e2 \'ef\'e0\'f0-\'f0\'fb:x,opt,worked\par
+    function findNoWorkedBlock()\{\par
+       // for(var i=0; i < nbOfBlocks; i++) console.log("i="+i+" allBlocks[i].worked="+allBlocks[i].worked);\par
+\par
+         for(var i=0; i < nbOfBlocks; i++)\{\par
+            if (allBlocks[i].worked === false)\{\par
+                    //\'e8\'e7\'ec\'e5\'ed\'e8\'f2\'fc \'ef\'e0\'f0-\'f0 worked\par
+                     allBlocks[i].worked = true ;\par
+                   //  console.log("i="+i);\par
+                     return i;\par
+                 \}//if - true\par
+            \} //for\par
+          //  console.log("\'ed\'e5\'eb\'fc\'e7\'ff \'e1\'ee\'eb\'fc\'f8\'e5 \'f1\'ee\'e7\'e4\'e0\'f2\'fc \'e1\'eb\'ee\'ea\'ee\'e2");\par
+            return -1;\par
+    \} //function   \par
+\par
+     function createLine()\{\par
+\par
+       var arr=[];\par
+       var bullArr=[];\par
+     \par
+        var sum=0;\par
+        for(var i=0; i < gridLength; i++)\{\par
+            if(Math.random() < randBin[i])\{ line[i] = 1; sum++;\}\par
+                                     else \par
+                                           line[i] = 0;\par
+            \}\par
+       //   console.log("line="+line+" sum="+sum);\par
+   \par
+         if (countFreeBlock()>=sum)\par
+          for(var i=0; i < gridLength; i++)\{\par
+          if(line[i]===1) \{ \par
+            \par
+            var cBlock="optNormal";\par
+                if (Math.random() <= 0.4)  \{cBlock="optYellow";  \}\par
+                    else if (Math.random() <=0.2)\{cBlock="optRed";\}              \par
+              \par
+                var index = findNoWorkedBlock();\par
+               // console.log("index="+index);\par
+                                 allBlocks[index].blockX= i*(rectW+3);\par
+                                 allBlocks[index].optName=cBlock;\par
+                                 allBlocks[index].setHit();\par
+                                 allBlocks[index].crashColor = false;\par
+                                 allBlocks[index].gun = false;\par
+                                 \par
+                                 if(Math.random() < 0.2)\{\par
+                                    allBlocks[index].gun = true;\par
+                                   bullArr=[]; \par
+                                   bullArr.push( new Bullet(index,\par
+                                                           allBlocks[index].blockX+allBlocks[index].rectW/2,\par
+                                                          allBlocks[index].blockY+allBlocks[index].rectH,\par
+                                                          3,100,0,1,3000));\par
+                               \par
+                                    guns.push(bullArr);\par
+                                \} \par
+\par
+                                 indexNewLine=index;\par
+                                 arr.push(index);\par
+                                \} //if(line[i]===1)  \par
+                \} //for i         \par
+          return arr;  \par
+        \}\par
+\par
+\par
+function setNewLine()\{\par
+    var arr=[];\par
+\par
+    for(var i=0; i < gridLength; i++)\{\par
+        if (line[i] === 1 || line[i+1] === 1)\{\par
+            randBin[i] = 0.5;\par
+        \}else\{\par
+            randBin[i] = 0.1;\par
+        \}\par
+    \}\par
+ //  \'f1\'f4\'ee\'f0\'ec\'e8\'f0\'ee\'e2\'e0\'f2\'fc \'ed\'ee\'e2\'f3\'fe \'eb\'e8\'ed\'e8\'fe \'e1\'eb\'ee\'ea\'ee\'e2 line \par
+        arr=createLine();\par
+ //\'e5\'f1\'eb\'e8 \'f1\'f2\'f0\'ee\'ea\'e0 \'ef\'f3\'f1\'f2\'e0\'ff, \'f2\'ee \'e2 grid \'e4\'ee\'ef\'e8\'f1\'fb\'e2\'e0\'f2\'fc \'e5\'e5 \'ed\'e5 \'ed\'e0\'e4\'ee\par
+        if (arr.length === 0) \{//console.log("\'f1\'f4\'ee\'f0\'ec\'e8\'f0\'ee\'e2\'e0\'ed\'e0 \'ef\'f3\'f1\'f2\'e0\'ff \'f1\'f2\'f0\'ee\'ea\'e0 ");\par
+                               return;\}\par
+ // \'eb\'e8\'e1\'ee \'ef\'e8\'f8\'e5\'ec \'e2 \'ea\'ee\'ed\'e5\'f6 grid, \'eb\'e8\'e1\'ee \'e2 \'ed\'e0\'f7\'e0\'eb\'ee grid\par
+                   else  \par
+                        \{ \par
+                            grid.push(arr);\par
+                               // console.log("grid " + numStrGrid + "  = "+grid.lenght); \par
+                         // numStrGrid ++;      \par
+                              /*   for (var n=0;n<grid.length;n++)      \par
+                                 console.log("grid"+n+" = " + grid[n]);\par
+                                 console.log("line="+line);\par
+                                 for(var i=0;i<allBlocks.length;i++)\{\par
+                                 if(allBlocks[i].worked === false)\par
+                                  //  console.log("i="+i+" block.worked="+allBlocks[i].worked);\par
+                                 \}\par
+                               */  \par
+                        \}\par
+\}//setNewLine\par
+\par
+\par
+    var start = function () \{\par
+        initFPSCounter();\par
+\par
+        canvas = document.getElementById("shooter");\par
+          // often useful\par
+        w = canvas.width;\par
+        h = canvas.height;\par
+        ctx = canvas.getContext('2d');\par
+        console.log("ctx="+ctx);\par
+        // default police for text\par
+        ctx.font = "20px Arial";\par
+        \par
+        // Create the different key and mouse listeners\par
+        addListeners(inputStates, canvas);\par
+         for(var i=0; i < gridLength; i++)\par
+           randBin.push(0.1);\par
+        //\'e8\'ed\'e8\'f6-\'f6\'e8\'ff \'ec\'e0\'f1\'f1\'e8\'e2\'e0 \'e1\'eb\'ee\'ea\'ee\'e2\par
+          for(var i=0;i<nbOfBlocks;i++)\par
+          \{\par
+            allBlocks[i]=new Block(0,Y_START,SPEED_START,rectW,rectH,"optNormal",false,\par
+                              assets.spritesheet,false);\par
+   \par
+          \}\par
+          for(var i=0;i<gridLength;i++) line[i]=0;\par
+           // createLine();\par
+            setNewLine();\par
+        //createSquare();\par
+             loadAssets(assetsToLoadURLs, function(assetsLoaded) \{\par
+            assets = assetsLoaded;\par
+            console.log("all images and sounds loaded and decoded");\par
+                   // all assets (images, sounds) loaded, we can start the animation\par
+         //   rocket = new Rocket(w/2-15,h-60,100,160,assets.rocket,20); \par
+            canvas.style.backgroundImage = "url('https://mainline.i3s.unice.fr/mooc/StarWarriors/assets/Cosmo-background.jpg')"; \par
+            currentLevelTime = TIME_BETWEEN_LEVELS; \par
+\par
+         //   var ROCKET_SPRITE_WIDTH  = 80; \par
+         //   var ROCKET_SPRITE_HEIGHT = 80;\par
+            var ROCKET_CRASH_BEGIN   = 3;\par
+            var ROCKET_CRASH_NB      = 9; \par
+\par
+            var STRANGER_CRASH_BEGIN   = 11+3;\par
+            var STRANGER_CRASH_NB      = 9; \par
+\par
+            var SHEET_NB_STRING     =   2 ;\par
+            var SHEET_NB_COLUMN     =  11 ; \par
+        //=======================================================================   \par
+            rocketPicture         = new SpriteImage(assets.spritesheet,0,0,80,80); \par
+            rocketPictureSecond   = new SpriteImage(assets.spritesheet,80,0,80,80);\par
+            rocketCrash = new Sprite();             \par
+            rocketCrash.extractSprites(assets.spritesheet,ROCKET_CRASH_BEGIN,\par
+                                ROCKET_CRASH_NB, \par
+                                SHEET_NB_COLUMN,SHEET_NB_STRING );           \par
+            rocketCrash.setNbImagesPerSecond(6);\par
+\par
+            rocket = new Rocket(w/2-15,h-60,80,80,rocketPicture,rocketPictureSecond,20); \par
+        //------------------------------------------------------------------------\par
+            strangerPicture       = new SpriteImage(assets.spritesheet,0,80,80,80);\par
+            strangerPictureSecond = new SpriteImage(assets.spritesheet,80,80,80,80);\par
+            strangerCrash = new Sprite();             \par
+            strangerCrash.extractSprites(assets.spritesheet,STRANGER_CRASH_BEGIN,\par
+                                STRANGER_CRASH_NB, \par
+                                SHEET_NB_COLUMN,SHEET_NB_STRING );            \par
+            strangerCrash.setNbImagesPerSecond(10);\par
+         //========================================================================   \par
+           // assets.spaceMusic.play();\par
+            requestAnimationFrame(mainLoop);\par
+        \});\par
+    \};\par
+\par
+    //our GameFramework returns a public API visible from outside its scope\par
+    return \{\par
+        start: start\par
+    \};\par
+\};\par
+\par
+\par
+function isImage(url) \{\par
+    return (url.match(/\\.(jpeg|jpg|gif|png|svg)$/) != null);\par
+\}\par
+\par
+function isAudio(url) \{\par
+    return (url.match(/\\.(mp3|ogg|wav)$/) != null);\par
+\}\par
+\par
+function loadAssets(assetsToBeLoaded, callback) \{\par
+    var assetsLoaded = \{\};\par
+    var loadedAssets = 0;\par
+    var numberOfAssetsToLoad = 0;\par
+\par
+    // define ifLoad function\par
+    var ifLoad = function () \{\par
+        if (++loadedAssets >= numberOfAssetsToLoad) \{\par
+            callback(assetsLoaded);\par
+        \}\par
+        console.log("Loaded asset" + loadedAssets);\par
+    \};\par
+    // get num of assets to load\par
+    for (var name in assetsToBeLoaded) \{\par
+        numberOfAssetsToLoad++;\par
+        console.log(name);\par
+    \}\par
+\par
+    console.log("Nb assets to load: " + numberOfAssetsToLoad);\par
+\par
+    for (name in assetsToBeLoaded) \{\par
+        var url = assetsToBeLoaded[name].url;\par
+        var type = assetsToBeLoaded[name].type;\par
+        console.log("Loading " + url);\par
+        if (type === "image") \{\par
+            assetsLoaded[name] = new Image();\par
+\par
+            assetsLoaded[name].onload = ifLoad;\par
+            // will start async loading. \par
+            assetsLoaded[name].src = url;\par
+        \} else \{\par
+            // We assume the asset is an audio file\par
+            console.log("loading " + name + " buffer : " + assetsToBeLoaded[name].loop);\par
+            assetsLoaded[name] = new Howl(\{\par
+                urls: [url],\par
+                format: 'mp3',\par
+                buffer: assetsToBeLoaded[name].buffer,\par
+                loop: assetsToBeLoaded[name].loop,\par
+                autoplay: false,\par
+                \par
+                volume: assetsToBeLoaded[name].volume,\par
+                onload: function () \{\par
+                    if (++loadedAssets >= numberOfAssetsToLoad) \{\par
+                        callback(assetsLoaded);\par
+                    \}\par
+                    console.log("Loaded asset " + loadedAssets);\par
+                \}\par
+            \}); // End of howler.js callback\par
+            \par
+        \} // if\par
+\par
+    \} // for\par
+\} // function\f0\lang9\par
+}
+ 
