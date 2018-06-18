@@ -6,5 +6,5 @@ A curated list of basic Javascript codes categorised into:
 ->[Ball Control Game](https://github.com/Donyme/Basic-Javascript-CodeTweaks/tree/master/Basic%20Javascript%20Code%20Tweaks/Ball%20Control%20Game)
 ->[Basic Widgets](https://github.com/Donyme/Basic-Javascript-CodeTweaks/tree/master/Basic%20Javascript%20Code%20Tweaks/Basic%20widgets)
 ->[Geolocation](https://github.com/Donyme/Basic-Javascript-CodeTweaks/tree/master/Basic%20Javascript%20Code%20Tweaks/Geolocation)
-->Mouse Event Movements
-->Space Wars Game
+->[Mouse Event Movements](https://github.com/Donyme/Basic-Javascript-CodeTweaks/tree/master/Basic%20Javascript%20Code%20Tweaks/Mouse%20movement%20events)
+->[Space Wars Game](https://github.com/Donyme/Basic-Javascript-CodeTweaks/tree/master/Basic%20Javascript%20Code%20Tweaks/Space%20wars%20game)
